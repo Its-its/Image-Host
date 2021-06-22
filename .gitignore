@@ -1,5 +1,8 @@
 /app/config.json
+
 /app/prefixes/*
+!/app/prefixes/.gitkeep
 /app/suffixes/*
+!/app/suffixes/.gitkeep
 
 /target
