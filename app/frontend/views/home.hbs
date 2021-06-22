@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>{{ title }} | We have images!</title>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/foundation/6.2.3/foundation.min.css">
+		<link rel="stylesheet" href="/css/lib/font-awesome-4.0.3.css">
+		<link rel="stylesheet" href="/css/lib/dropzone.min.css">
+		<!-- <link rel="shortcut icon" href="FAVICON.ico"> -->
+		<style media="screen">
+			body {
+				color: #393939;
+			}
+
+			.enter {
+				padding: 100px 0;
+				background-image: url('/img/polygon.png');
+			}
+
+			.enter .description {
+				margin-bottom: 40px;
+				font-size: 18px;
+			}
+
+			.introduction {
+				padding: 150px 0;
+			    box-shadow: inset 0 1px 3px rgba(0,0,0,.05), 0 1px 0 rgba(255,255,255,.1);
+			    border-top: 1px solid #e3e3e3;
+				border-bottom: 1px solid #e3e3e3;
+			}
+
+			#features {
+				background-image: url('/img/bg2.jpg');
+			}
+
+			#features .overlay {
+				background-color: rgba(255, 255, 255, 0.3);
+				padding: 20px 0;
+				width: 100%;
+				height: 100%;
+			}
+
+			.box-dragndrop,
+			.box-uploading,
+			.box-success,
+			.box-error {
+				display: none;
+			}
+
+			.box {
+				font-size: 1.25rem; /* 20 */
+				background-color: hsla(204.6, 48.1%, 84.1%, 0.6);
+				position: relative;
+				padding: 100px 20px;
+			}
+
+			.box.has-advanced-upload {
+				outline: 2px dashed #92b0b3;
+				outline-offset: -10px;
+
+				-webkit-transition: outline-offset .15s ease-in-out, background-color .15s linear;
+				transition: outline-offset .15s ease-in-out, background-color .15s linear;
+			}
+
+			.box.is-dragover {
+				outline-offset: -20px;
+				outline-color: #c8dadf;
+				background-color: #fff;
+			}
+
+			.box-dragndrop,
+			.box-icon {
+				display: none;
+			}
+
+			.box.has-advanced-upload .box-dragndrop {
+				display: inline;
+			}
+
+			.box.has-advanced-upload .box-icon {
+				width: 100%;
+				height: 80px;
+				fill: #92b0b3;
+				display: block;
+				margin-bottom: 40px;
+			}
+
+			.box.is-uploading .box-input,
+			.box.is-success .box-input,
+			.box.is-error .box-input {
+				visibility: hidden;
+			}
+
+			.box-uploading,
+			.box-success,
+			.box-error {
+				display: none;
+			}
+
+			.box.is-uploading .box-uploading,
+			.box.is-success .box-success,
+			.box.is-error .box-error {
+				display: block;
+				position: absolute;
+				top: 50%;
+				right: 0;
+				left: 0;
+
+				-webkit-transform: translateY( -50% );
+				transform: translateY( -50% );
+			}
+
+			.box-uploading {
+				font-style: italic;
+			}
+
+			.box-success {
+				-webkit-animation: appear-from-inside .25s ease-in-out;
+				animation: appear-from-inside .25s ease-in-out;
+			}
+
+			@-webkit-keyframes appear-from-inside {
+				from	{ -webkit-transform: translateY( -50% ) scale( 0 ); }
+				75%		{ -webkit-transform: translateY( -50% ) scale( 1.1 ); }
+				to		{ -webkit-transform: translateY( -50% ) scale( 1 ); }
+			}
+
+			@keyframes appear-from-inside {
+				from	{ transform: translateY( -50% ) scale( 0 ); }
+				75%		{ transform: translateY( -50% ) scale( 1.1 ); }
+				to		{ transform: translateY( -50% ) scale( 1 ); }
+			}
+
+			.box-restart {
+				font-weight: 700;
+			}
+
+			.box-restart:focus,
+			.box-restart:hover {
+				color: #39bfd3;
+			}
+
+			.box-file {
+				width: 0.1px;
+				height: 0.1px;
+				opacity: 0;
+				overflow: hidden;
+				position: absolute;
+				z-index: -1;
+			}
+
+			.box-file + label {
+				max-width: 80%;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				cursor: pointer;
+				display: inline-block;
+				overflow: hidden;
+			}
+
+			.box-file + label:hover strong,
+			.box-file:focus + label strong,
+			.box-file.has-focus + label strong {
+				color: #477f8c;
+			}
+
+			.box-file:focus + label,
+			.box-file.has-focus + label {
+				outline: 1px dotted #000;
+				outline: -webkit-focus-ring-color auto 5px;
+			}
+
+			.no-js .box-file + label {
+				display: none;
+			}
+
+			.no-js .box-button {
+				display: block;
+			}
+
+			.box-button {
+				font-weight: 700;
+				color: #e5edf1;
+				background-color: #39bfd3;
+				display: none;
+				padding: 8px 16px;
+				margin: 40px auto 0;
+			}
+
+			.box-button:hover,
+			.box-button:focus {
+				background-color: #0f3c4b;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="top-bar">
+			<div class="top-bar-left">
+				<ul class="dropdown menu" data-dropdown-menu>
+					<li class="menu-text">{{ title }}</li>
+				</ul>
+			</div>
+			<div class="top-bar-right">
+				<ul class="menu">
+					{{ #if is_logged_in }}
+						<a href="/profile" class="button">GoTo Profile</a>
+						<a href="/logout" class="button">Logout</a>
+					{{ else }}
+						<a href="/auth/twitter" class="button">Login via <span class="fa fa-twitter"></span> Twitter</a>
+					{{ /if }}
+				</ul>
+			</div>
+		</div>
+		<div style="background-image: url('/img/bg2.jpg');padding: 6px 0;"></div>
+		<div class="expanded row enter">
+			<div class="text-center">
+				<h2>Screenshot n' Share</h2>
+				<div class="description">
+					<span>Take images and share them with ease.</span>
+					<br>
+					<span>WIP Program</span>
+				</div>
+				<a href="#" class="large button">DOWNLOAD (soon)</a>
+			</div>
+		</div>
+
+		<div class="expanded row introduction">
+	  		<div class="text-center">
+				<h2>Introduction Video Goes Here</h2>
+				<iframe width="560" height="315" src="" frameborder="0" allowfullscreen style="box-shadow: 0 0 5px #6A6A6A"></iframe>
+	        </div>
+		</div>
+
+		<div id="features">
+			<div class="overlay">
+				<div class="row">
+					<div class="text-center">
+						<h2>Features</h2>
+						<!--div class="column medium-4">
+							<span>There's um... Image uploading.</span><br>
+							<span>Also um... Image viewing.</span><br>
+							<span>Ooooh! And Image uploading!</span>
+							<ul class="pricing-table no-bullet text-center">
+								<li class="title">Includes</li>
+								<!-li class="description">Everything</li->
+								<li>Unlimited Image Uploading</li>
+								<li>Image views</li>
+								<li><a class="button" href="#">Buy Now</a></li>
+							</ul>
+						</div-->
+					</div>
+					<span style="font-size:24px;">There's um... Image uploading.</span><br>
+					<span style="font-size:24px;">Also um... Image viewing.</span><br>
+					<span style="font-size:24px;">Ooooh! And Image uploading!</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="row">
+			<hr>
+			<nav aria-label="GoTo:" role="navigation">
+				<ul class="breadcrumbs">
+					<li><a href="/">Home</a></li>
+					<li><a href="/#features">Features</a></li>
+					<li><a href="/help">Help</a></li>
+					<li><a href="/terms">Terms</a></li>
+					<li><a href="/privacy">Privacy</a></li>
+				</ul>
+			</nav>
+			<hr>
+		</div>
+
+		<script src="/js/home.js"></script>
+	</body>
+</html>

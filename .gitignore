@@ -1,0 +1,5 @@
+/app/config.json
+/app/prefixes/*
+/app/suffixes/*
+
+/target

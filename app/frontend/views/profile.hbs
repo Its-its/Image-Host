@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Profile | {{ title }}</title>
+		<link rel="shortcut icon" href="FAVICON.ico">
+		<link rel="stylesheet" href="//cdn.jsdelivr.net/foundation/6.2.3/foundation.min.css">
+		<link rel="stylesheet" href="/css/lib/font-awesome-4.0.3.css">
+		<link rel="stylesheet" href="/css/core.css">
+	</head>
+	<body>
+		<!-- Navbar -->
+		<div class="top-bar">
+			<div class="top-bar-left">
+				<ul class="dropdown menu" data-dropdown-menu>
+					<li class="menu-text">{{ title }}</li>
+				</ul>
+			</div>
+			<div class="top-bar-right">
+				<ul class="menu">
+					<a href="/" class="button">Home</a>
+					<a href="/logout" class="button">Logout</a>
+				</ul>
+			</div>
+		</div>
+
+		<div style="background-image: url('/img/bg2.jpg'); padding: 6px 0; margin-bottom: 10px;"></div>
+
+		<!-- Settings -->
+		<div class="row">
+			<button type="button" class="button" id="showSettings">View Settings</button>
+			<div class="large-12 column" id="settings" style="display: none;">
+				<h5>UID: <span id="uniqueID"></span></h5>
+				<div class="large-5">
+					<form id="urlTypeForm">
+						<fieldset class="fieldset">
+							<legend>Pick one, any one!</legend>
+							<div class="form-group">
+								<label class="large-2 column">URL Type</label>
+								<div class="large-10 column">
+									<div class="radio">
+										<label title="Ex: PeterPiper">
+											<input name="optionRadios" value="0" checked="" type="radio"> Phonetic URL
+										</label>
+									</div>
+									<div class="radio">
+										<label title="Ex: 7s20fsd4">
+											<input name="optionRadios" value="1" type="radio"> 8 Random Characters
+										</label>
+									</div>
+									<div class="radio">
+										<label title="Ex: 4nds79sd4b3bb345gdb87blsd09sdf84">
+											<input name="optionRadios" value="2" type="radio"> 32 Random Characters
+										</label>
+									</div>
+								</div>
+								<button type="submit" class="button">Change</button>
+							</div>
+						</fieldset>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="years-months">
+				<div class="years"></div>
+				<div class="months">
+					<span>Jan</span><span>Feb</span><span>Mar</span>
+					<span>Apr</span><span>May</span><span>Jun</span>
+					<span>Jul</span><span>Aug</span><span>Sep</span>
+					<span>Oct</span><span>Nov</span><span>Dec</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Images -->
+		<div class="row large-12" id="images"></div>
+
+		<div class="large reveal" id="modelImage" data-reveal>
+			<h1>Image Information</h1>
+			<p class="lead">Displaying your image info since 1997.</p>
+
+			<div class="row">
+				<div class="large-3 column">
+					<img alt="Image goes here" id="image" style="max-width: 100%;max-height: 200px;"/>
+				</div>
+				<div class="large-9 column">
+					<h3>Name: <span id="name">Unknown</span></h3>
+					<h4>Added: <span id="date">Unknown</span></h4>
+					<h5>Total Views: <span id="views">0</span></h5>
+					<h6>Total Gb: <span id="bytes">0</span></h6>
+					<a id="remove" href="#" class="button">Remove</a>
+				</div>
+			</div>
+			<hr>
+			<div class="row">
+				<div id="chart" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+			</div>
+
+			<button class="close-button" data-close aria-label="Close modal" type="button">
+				<span aria-hidden="true">&times;</span>
+			</button>
+		</div>
+
+		<script type="text/javascript" src="/js/lib/jquery-2.1.4.js"></script>
+		<script type="text/javascript" src="/js/lib/jquery.unveil.js"></script>
+		<script type="text/javascript" src="//cdn.jsdelivr.net/foundation/6.2.3/foundation.min.js"></script>
+		<script type="text/javascript" src="//cdn.jsdelivr.net/clipboard.js/1.5.12/clipboard.min.js"></script>
+		<script type="text/javascript" src="/js/lib/highcharts.js"></script>
+		<script type="text/javascript" src="/js/lib/hc-exporting.js"></script>
+		<script type="text/javascript" src="/js/lib/hc-dark-unica.js"></script>
+		<script type="text/javascript" src="/js/templates.js"></script>
+		<script type="text/javascript" src="/js/storage.js"></script>
+		<script type="text/javascript" src="/js/main.js"></script>
+	</body>
+</html>

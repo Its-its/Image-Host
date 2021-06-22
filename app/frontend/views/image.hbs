@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="x-ua-compatible" content="ie=edge">
+		<meta name="description" content="">
+
+		<meta property="og:site_name" content="Thickat">
+		<meta property="og:url" content="https://{{ baseUrl }}/{{ imageName }}">
+		<!-- <meta property="og:title" content="Image"> -->
+		<meta property="og:description" content="">
+
+		<meta property="og:type" content="image">
+		<meta property="og:image" content="https://i.{{ baseUrl }}/{{ imageLoc }}">
+		<meta property="og:image:type" content="{{ mimeType }}">
+		<!-- <meta property="og:image:width" content="">
+		<meta property="og:image:height" content=""> -->
+
+		<title>{{ title }} | {{ imageName }}</title>
+		<link rel="shortcut icon" href="FAVICON.ico">
+		<style>
+			* {
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family: "Roboto","Helvetica Neue",Helvetica,Arial,sans-serif;
+				font-size: 14px;
+				line-height: 1.42857143;
+				color: #888888;
+				margin: 0;
+				background-color: #202020;
+			}
+
+			.img2center {
+				cursor: default !important;
+				margin: 0;
+				-webkit-user-select: none;
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				margin-right: -50%;
+				transform: translate(-50%, -50%);
+				box-shadow: 0 0 5px 5px #1D1D1D;
+			}
+
+			a {
+				color: #2a9fd6;
+				text-decoration: none;
+			}
+
+			a:hover, a:focus {
+				color: #2a9fd6;
+				text-decoration: underline;
+			}
+		</style>
+	</head>
+	<body>
+		<img class="img2center" src="https://i.{{ baseUrl }}/{{ imageLoc }}" alt="Image not found" />
+
+		<div style="position: absolute; bottom: 0; width: 100%; padding: 0 20px;">
+			<span style="font-size: 24px;">Powered By </span>
+			<a style="font-size: 30px;" href="/">{{ title }}</a>
+		</div>
+
+		<!--script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+			<ins class="adsbygoogle" style="display:inline-block;height:90px" data-ad-client="ca-pub-5943440956099171" data-ad-slot="9623191248"></ins>
+			<script>(adsbygoogle = window.adsbygoogle || []).push({});</script-->
+	</body>
+</html>

@@ -1,0 +1,54 @@
+[package]
+name = "image-host"
+version = "0.1.0"
+authors = ["Timothy <2779546+Its-its@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+
+env_logger = "0.8"
+
+lazy_static = "1.4"
+thiserror = "1.0"
+
+tokio = { version = "1.7", features = ["full"] }
+futures = { version = "0.3", features = ["std", "thread-pool"] }
+
+reqwest = { version = "0.11", features = ["json", "stream"] }
+
+rand = "0.8"
+regex = "1.5"
+rust-crypto = "0.2"
+image = "0.23"
+url = "2.2"
+mime = "0.3"
+uuid = { version = "0.8", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+base64 = "0.13"
+
+mongodb = "2.0.0-beta.1"
+
+
+# actix-web = "3.3"
+# actix-files = "0.5"
+# actix-session = "0.4"
+# actix-multipart = "0.3"
+# actix-identity = "0.3"
+
+actix-files = "0.6.0-beta.4"
+actix-rt = "2.2.0"
+actix-service = "=2.0.0-beta.5"
+actix-http = "=3.0.0-beta.5"
+actix-web = "=4.0.0-beta.5"
+
+actix-multipart = "0.4.0-beta.4"
+actix-session = "0.5.0-beta.1"
+actix-identity = "0.4.0-beta.1"
+
+handlebars = { version = "4.0", features = ["dir_source"] }
