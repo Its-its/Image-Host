@@ -73,9 +73,17 @@ async fn profile(identity: Identity, hb: HandlebarsDataService<'_>, config: Conf
 }
 
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Settings {
+	upload_type: Option<u8>,
+	unique_id: Option<String>,
+	join_date: Option<i64>
+}
+
+
 #[post("/user/settings")]
-async fn update_settings(identity: Identity, data: web::Form<serde_json::Value>) -> HttpResponse {
-	// let user = match user_identity(identity) {
+async fn update_settings(identity: Identity, data: web::Form<Settings>) -> Result<HttpResponse> {
+	// let user = match get_slim_user_identity(identity) {
 	// 	Some(u) => u,
 	// 	None => {
 	// 		return Ok(HttpResponse::Unauthorized().body("Not Logged in."));
@@ -86,7 +94,7 @@ async fn update_settings(identity: Identity, data: web::Form<serde_json::Value>)
 
 	println!("{:#?}", data);
 
-	HttpResponse::Ok().json("{}".to_string())
+	Ok(HttpResponse::Ok().json("{}".to_string()))
 }
 
 
@@ -106,14 +114,13 @@ async fn get_settings(identity: Identity, _hb: HandlebarsDataService<'_>) -> Res
 		}
 	};
 
+	println!("{:#?}", user);
 
-	let json = serde_json::json!({
-		"upload_type": user.data.upload_type,
-		"unique_id": user.data.unique_id,
-		"join_date": user.data.join_date.timestamp_millis()
-	});
-
-	Ok(HttpResponse::Ok().json(json))
+	Ok(HttpResponse::Ok().json(Settings {
+		upload_type: Some(user.data.upload_type.to_num()),
+		unique_id: Some(user.data.unique_id),
+		join_date: Some(user.data.join_date.timestamp_millis())
+	}))
 }
 
 

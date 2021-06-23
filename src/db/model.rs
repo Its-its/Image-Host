@@ -1,7 +1,7 @@
 use chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 use mongodb::{Cursor, bson::{DateTime, doc, oid::ObjectId}, results::InsertOneResult};
 
-use crate::error::Result;
+use crate::{error::Result, upload::image::UploadImageType};
 
 use super::{ImagesCollection, UsersCollection, get_users_collection};
 
@@ -27,7 +27,6 @@ impl From<ObjectId> for UserId {
 		Self::Id(id)
 	}
 }
-
 
 
 
@@ -88,7 +87,7 @@ pub async fn find_user_by_id<I: Into<UserId>>(user_id: I, collection: &UsersColl
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserData {
 	#[serde(rename = "type")]
-	pub upload_type: i32,
+	pub upload_type: UploadImageType,
 	#[serde(rename = "banned")]
 	pub is_banned: bool,
 	#[serde(rename = "joinDate")]
