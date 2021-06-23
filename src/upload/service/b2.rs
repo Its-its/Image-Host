@@ -121,6 +121,24 @@ impl Service {
 
 		Ok(())
 	}
+
+	pub async fn hide_file(&mut self, file_name: &str) -> Result<()> {
+		{ // Image Upload
+			let mut path = self.image_sub_directory.clone();
+			path.push(file_name);
+
+			try_hide_file_multi(path.to_str().unwrap(), &self.auth, &self.bucket_id).await?;
+		}
+
+		{ // Icon Upload
+			let mut path = self.icon_sub_directory.clone();
+			path.push(format!("i{}", file_name));
+
+			try_hide_file_multi(path.to_str().unwrap(), &self.auth, &self.bucket_id).await?;
+		}
+
+		Ok(())
+	}
 }
 
 
@@ -128,7 +146,6 @@ impl Service {
 
 async fn try_upload_file_multi(file_name: &str, image_buffer: Vec<u8>, auth: &B2Authorization, bucket_id: &str) -> Result<()> {
 	let mut prev_error = None;
-
 
 	for _ in 0..5 {
 		// For Some reason getting the upload url errors.
@@ -143,6 +160,20 @@ async fn try_upload_file_multi(file_name: &str, image_buffer: Vec<u8>, auth: &B2
 
 		// TODO: Remove clone()
 		if let Err(e) = auth.upload_file(&upload_url, file_name, image_buffer.clone()).await {
+			prev_error = Some(e);
+			tokio::time::sleep(Duration::from_millis(1000)).await;
+			continue;
+		}
+	}
+
+	Err(prev_error.unwrap())
+}
+
+async fn try_hide_file_multi(file_path: &str, auth: &B2Authorization, bucket_id: &str) -> Result<()> {
+	let mut prev_error = None;
+
+	for _ in 0..5 {
+		if let Err(e) = auth.hide_file(bucket_id, file_path).await {
 			prev_error = Some(e);
 			tokio::time::sleep(Duration::from_millis(1000)).await;
 			continue;
@@ -269,6 +300,28 @@ impl B2Authorization {
 			.header("X-Bz-File-Name", encode_file_name(file_name).as_str())
 			.header("X-Bz-Content-Sha1", sha.as_str())
 			.body(image)
+			.send()
+			.await?;
+
+		if resp.status().is_success() {
+			Ok(resp.json().await?)
+		} else {
+			println!("upload_file: {:?}", resp.text().await?);
+			Err(InternalError::B2UploadFile.into())
+		}
+	}
+
+	pub async fn hide_file(&self, bucket_id: &str, file_path: &str) -> Result<serde_json::Value> {
+		let client = reqwest::Client::new();
+
+		let body = json!({
+			"bucketId": bucket_id,
+			"fileName": file_path
+		});
+
+		let resp = client.post(format!("{}/b2api/v2/b2_hide_file", self.api_url).as_str())
+			.header("Authorization", self.authorization_token.as_str())
+			.body(serde_json::to_string(&body)?)
 			.send()
 			.await?;
 

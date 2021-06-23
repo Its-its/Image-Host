@@ -52,5 +52,23 @@ impl Service {
 
 		Ok(())
 	}
+
+	pub async fn hide_file(&mut self, file_name: &str) -> Result<()> {
+		{
+			let mut path = self.directory.clone();
+			path.push(file_name);
+
+			tokio::fs::remove_file(path).await?;
+		}
+
+		{
+			let mut path = self.directory.clone();
+			path.push(format!("i{}", file_name));
+
+			tokio::fs::remove_file(path).await?;
+		}
+
+		Ok(())
+	}
 }
 

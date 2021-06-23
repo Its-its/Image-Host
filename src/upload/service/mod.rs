@@ -1,11 +1,20 @@
 use image::ImageFormat;
 
-use crate::{Filename, Result, WordManager, config::{ConfigServiceB2, ConfigServiceFileSystem, ConfigServices}};
+use crate::{
+	Filename,
+	Result,
+	WordManager,
+
+	config::{
+		ConfigServiceB2,
+		ConfigServiceFileSystem,
+		ConfigServices
+	}
+};
 
 
 pub mod b2;
 pub mod log;
-pub mod file;
 pub mod filesystem;
 
 
@@ -62,6 +71,14 @@ impl Service {
 			Self::Log(v) => v.process_files(uid, file_data, content_type, ip_addr, words).await,
 			Self::B2(v) => v.process_files(uid, file_data, content_type, ip_addr, words).await,
 			Self::FileSystem(v) => v.process_files(file_data, content_type, words).await
+		}
+	}
+
+	pub async fn hide_file(&mut self, file_name: &str) -> Result<()> {
+		match self {
+			Self::Log(v) => v.hide_file(file_name),
+			Self::B2(v) => v.hide_file(file_name).await,
+			Self::FileSystem(v) => v.hide_file(file_name).await
 		}
 	}
 }

@@ -30,4 +30,10 @@ impl Service {
 
 		Ok(())
 	}
+
+	pub fn hide_file(&mut self, file_name: &str) -> Result<()> {
+		println!("[LOG]: Removing File Name {:?}", file_name);
+
+		Ok(())
+	}
 }
