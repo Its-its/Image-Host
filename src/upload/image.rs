@@ -3,6 +3,14 @@ use serde::{Serialize, Serializer, Deserialize, Deserializer};
 use crate::{Filename, Result, WordManager, db::get_images_collection};
 
 
+// 0: Random Name	HyperSnowmobile123
+//
+// 1: simple-uid	08 bytes | 0348cd3f
+//
+// 2: extended-uid	32 bytes | ba0cc6361b4a28b8c08d1a36afa2a9a1
+//
+// 3: Encrypted		88 bytes | #c08d1a30348cd3f6afabaf0cc63b0348cd3a0cc6361b4a28!2jkh34v523gfpsd0fwasmxnvczcvn5435dman34r
+// 							 | # unique Identifier (48 bytes)                   ! Deobfuscation Code (40 bytes)
 
 
 #[derive(Debug, Clone, Copy)]

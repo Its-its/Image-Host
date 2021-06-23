@@ -137,10 +137,11 @@ pub struct Image {
 	#[serde(rename = "size")]
 	pub file_size: i64,
 
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub custom_name: Option<String>,
-	pub tags: Option<String>,
 
-	pub encryption_code: Option<String>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub tags: Option<Vec<String>>,
 
 	#[serde(default)]
 	pub is_edited: bool,
@@ -150,6 +151,8 @@ pub struct Image {
 
 	#[serde(rename = "views")]
 	pub view_count: i32,
+
+	// pub uploader_id: ObjectId,
 
 	pub uploader: ImageUploader,
 
@@ -183,8 +186,6 @@ pub struct SlimImage {
 	pub file_type: String,
 	pub file_size: i64,
 
-	pub encryption_code: Option<String>,
-
 	pub is_edited: bool,
 	pub is_favorite: bool,
 	pub view_count: i32,
@@ -208,7 +209,6 @@ impl From<Image> for SlimImage {
 			file_type: img.file_type,
 			file_size: img.file_size,
 
-			encryption_code: img.encryption_code,
 
 			is_edited: img.is_edited,
 			is_favorite: img.is_favorite,

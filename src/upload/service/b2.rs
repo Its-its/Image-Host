@@ -110,7 +110,6 @@ impl Service {
 
 			upload_date: DateTime::now(),
 
-			encryption_code: None,
 			tags: None,
 			custom_name: None,
 		};

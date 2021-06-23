@@ -6,9 +6,10 @@ use futures::TryStreamExt;
 
 use handlebars::Handlebars;
 
-use actix_web::{App, HttpRequest, HttpResponse, HttpServer, get, http::header, middleware::Logger, post, web};
+use actix_web::{App, HttpRequest, HttpResponse, HttpServer, http::header, middleware::Logger, get, post, delete, web::{self, JsonConfig}};
 use actix_multipart::{Field, Multipart};
-use web::JsonConfig;
+
+use mongodb::bson::doc;
 
 use crate::config::Config;
 use crate::upload::service::Service;
@@ -167,6 +168,103 @@ async fn get_images(identity: Identity, query: web::Query<ImageQuery>) -> Result
 }
 
 
+
+
+#[get("/image/{name}")]
+async fn get_image_info(identity: Identity, path: web::Path<String>) -> Result<HttpResponse> {
+	let collection = get_images_collection();
+
+	let user = match get_slim_user_identity(identity) {
+		Some(u) => u,
+		None => {
+			return Ok(HttpResponse::Unauthorized().body("Not Logged in."));
+		}
+	};
+
+	let image = collection.find_one(
+		doc! {
+			"name": path.as_ref()
+		},
+		None
+	).await?;
+
+	// TODO: Check if user is the one who uploaded it.
+
+	Ok(HttpResponse::Found().json(image))
+}
+
+#[derive(Serialize, Deserialize)]
+struct UpdateImage {
+	favorite: Option<bool>,
+	custom_name: Option<String>,
+	tags: Option<Vec<String>>
+}
+
+#[post("/image/{name}")]
+async fn update_image(identity: Identity, path: web::Path<String>, form: web::Form<UpdateImage>) -> Result<HttpResponse> {
+	let collection = get_images_collection();
+
+	let user = match get_slim_user_identity(identity) {
+		Some(u) => u,
+		None => {
+			return Ok(HttpResponse::Unauthorized().body("Not Logged in."));
+		}
+	};
+
+	let res = collection.update_one(
+		doc! {
+			"name": path.as_ref(),
+			"uploader_id": user.id
+		},
+		doc! {
+			"$set": {
+				// TODO
+			}
+		},
+		None
+	).await?;
+
+	// TODO: Check if user is the one who uploaded it.
+
+	Ok(HttpResponse::Found().json(res))
+}
+
+
+
+
+#[delete("/image/{name}")]
+async fn remove_image(identity: Identity, path: web::Path<String>, form: web::Form<UpdateImage>) -> Result<HttpResponse> {
+	let collection = get_images_collection();
+
+	let user = match get_slim_user_identity(identity) {
+		Some(u) => u,
+		None => {
+			return Ok(HttpResponse::Unauthorized().body("Not Logged in."));
+		}
+	};
+
+	let res = collection.delete_one(
+		doc! {
+			"name": path.as_ref(),
+			"uploader_id": user.id
+		},
+		None
+	).await?;
+
+	// TODO: Check if user is the one who uploaded it.
+
+	if res.deleted_count == 0 {
+		Ok(HttpResponse::Unauthorized().finish())
+	} else {
+		Ok(HttpResponse::Ok().finish())
+	}
+}
+
+
+
+
+
+
 #[post("/upload")]
 async fn upload(req: HttpRequest, mut multipart: Multipart, service: UploadDataService, words: WordDataService, config: ConfigDataService) -> Result<HttpResponse> {
 	let ip_addr: String = req.connection_info().remote_addr().map_or(String::new(), |c| c.to_string());
@@ -319,13 +417,19 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 			.app_data(config.clone())
 			.app_data(handlebars_ref.clone())
 
+			.service(upload)
+
 			.service(index)
 			.service(logout)
 			.service(profile)
+
 			.service(update_settings)
-			.service(get_settings)
 			.service(get_images)
-			.service(upload)
+			.service(get_settings)
+			.service(get_image_info)
+			.service(update_image)
+			.service(remove_image)
+
 			.service(
 				web::resource("/auth/twitter")
 					.route(web::get().to(crate::auth::twitter::get_twitter))
