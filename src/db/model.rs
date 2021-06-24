@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
-use mongodb::{Cursor, bson::{DateTime, doc, oid::ObjectId}, results::{DeleteResult, InsertOneResult}};
+use mongodb::{Cursor, bson::{DateTime, doc, oid::ObjectId}, results::{DeleteResult, InsertOneResult, UpdateResult}};
 
 use crate::{error::Result, upload::image::UploadImageType};
 
@@ -153,7 +153,9 @@ pub struct Image {
 	#[serde(rename = "views")]
 	pub view_count: i32,
 
-	// pub uploader_id: ObjectId,
+	pub deleted: Option<DateTime>,
+
+	pub uploader_id: Option<ObjectId>,
 
 	pub uploader: ImageUploader,
 
@@ -170,8 +172,32 @@ impl Image {
 		Ok(collection.insert_one(self, None).await?)
 	}
 
-	pub async fn delete(self, collection: &ImagesCollection) -> Result<DeleteResult> {
+	pub async fn delete_document(self, collection: &ImagesCollection) -> Result<DeleteResult> {
 		Ok(collection.delete_one(doc! { "_id": self.id.unwrap() }, None).await?)
+	}
+
+	pub async fn delete_request(self, collection: &ImagesCollection) -> Result<UpdateResult> {
+		Ok(collection.update_one(
+			doc! { "_id": self.id.unwrap() },
+			doc! {
+				"$set": {
+					"deleted": DateTime::now()
+				}
+			},
+			None
+		).await?)
+	}
+
+	pub async fn restore_request(self, collection: &ImagesCollection) -> Result<UpdateResult> {
+		Ok(collection.update_one(
+			doc! { "_id": self.id.unwrap() },
+			doc! {
+				"$unset": {
+					"deleted": ""
+				}
+			},
+			None
+		).await?)
 	}
 }
 

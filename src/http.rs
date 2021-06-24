@@ -256,11 +256,11 @@ async fn remove_image(identity: Identity, file_name: web::Path<String>, service:
 
 		service.lock()?.hide_file(file_name).await?;
 
-		let res = image.delete(&collection).await?;
+		let res = image.delete_request(&collection).await?;
 
 		// TODO: Check if user is the one who uploaded it.
 
-		if res.deleted_count == 0 {
+		if res.modified_count == 0 {
 			Ok(HttpResponse::Unauthorized().finish())
 		} else {
 			Ok(HttpResponse::Ok().finish())

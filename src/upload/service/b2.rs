@@ -99,6 +99,7 @@ impl Service {
 			file_type: file_name.format().to_string(),
 			file_size,
 
+			deleted: None,
 			is_edited: false,
 			is_favorite: false,
 			view_count: 0,
@@ -109,6 +110,7 @@ impl Service {
 			},
 
 			upload_date: DateTime::now(),
+			uploader_id: None,
 
 			tags: None,
 			custom_name: None,
