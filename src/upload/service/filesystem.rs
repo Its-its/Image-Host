@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use actix_web::error as web_error;
 
 use crate::config::ConfigServiceFileSystem;
-use crate::{WordManager, db};
+use crate::{Filename, WordManager, db};
 use crate::error::Result;
 
 use super::image_compress_and_create_icon;
@@ -53,17 +53,17 @@ impl Service {
 		Ok(())
 	}
 
-	pub async fn hide_file(&mut self, file_name: &str) -> Result<()> {
+	pub async fn hide_file(&mut self, file_name: Filename) -> Result<()> {
 		{
 			let mut path = self.directory.clone();
-			path.push(file_name);
+			path.push(file_name.as_filename());
 
 			tokio::fs::remove_file(path).await?;
 		}
 
 		{
 			let mut path = self.directory.clone();
-			path.push(format!("i{}", file_name));
+			path.push(format!("i{}.png", file_name.name()));
 
 			tokio::fs::remove_file(path).await?;
 		}

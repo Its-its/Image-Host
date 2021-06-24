@@ -11,6 +11,7 @@ use actix_multipart::{Field, Multipart};
 
 use mongodb::bson::doc;
 
+use crate::Filename;
 use crate::config::Config;
 use crate::upload::service::Service;
 use crate::{Result, WordManager, db::{get_images_collection, get_users_collection, model}, error::InternalError, words};
@@ -230,33 +231,42 @@ async fn update_image(identity: Identity, path: web::Path<String>, form: web::Fo
 }
 
 
-
-
 #[delete("/image/{name}")]
-async fn remove_image(identity: Identity, path: web::Path<String>, form: web::Form<UpdateImage>) -> Result<HttpResponse> {
+async fn remove_image(identity: Identity, file_name: web::Path<String>, service: UploadDataService) -> Result<HttpResponse> {
 	let collection = get_images_collection();
 
-	let user = match get_slim_user_identity(identity) {
-		Some(u) => u,
-		None => {
-			return Ok(HttpResponse::Unauthorized().body("Not Logged in."));
-		}
-	};
+	// let user = match get_slim_user_identity(identity) {
+	// 	Some(u) => u,
+	// 	None => {
+	// 		return Ok(HttpResponse::Unauthorized().body("Not Logged in."));
+	// 	}
+	// };
 
-	let res = collection.delete_one(
+	let res = collection.find_one(
 		doc! {
-			"name": path.as_ref(),
-			"uploader_id": user.id
+			"name": file_name.as_ref()
 		},
 		None
 	).await?;
 
-	// TODO: Check if user is the one who uploaded it.
+	if let Some(image) = res {
+		// if image.uploader_id != user.id { Ok(HttpResponse::Unauthorized().finish()) }
 
-	if res.deleted_count == 0 {
-		Ok(HttpResponse::Unauthorized().finish())
+		let file_name = Filename::from(image.full_file_name());
+
+		service.lock()?.hide_file(file_name).await?;
+
+		let res = image.delete(&collection).await?;
+
+		// TODO: Check if user is the one who uploaded it.
+
+		if res.deleted_count == 0 {
+			Ok(HttpResponse::Unauthorized().finish())
+		} else {
+			Ok(HttpResponse::Ok().finish())
+		}
 	} else {
-		Ok(HttpResponse::Ok().finish())
+		Ok(HttpResponse::NotFound().finish())
 	}
 }
 
@@ -435,7 +445,7 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 					.route(web::get().to(crate::auth::twitter::get_twitter))
 					.route(web::post().to(crate::auth::twitter::post_twitter))
 			)
-			.service(actix_files::Files::new("/", "./app/frontend/public"))
+			.service(actix_files::Files::new("/", "./app/frontend/public/www"))
 	})
 	.bind("127.0.0.1:8080")?
 	.run()

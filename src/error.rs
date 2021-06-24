@@ -41,7 +41,10 @@ pub enum Error {
 	#[error("Image Error: {0}")]
 	Image(ImageError),
 	#[error("Handlebars Error: {0}")]
-	Render(RenderError)
+	Render(RenderError),
+
+	#[error("Backblaze Error: {0}")]
+	B2(crate::upload::service::b2::JsonErrorStruct)
 }
 
 
@@ -127,6 +130,12 @@ impl From<RenderError> for Error {
 	fn from(value: RenderError) -> Self {
 		Self::Render(value)
 	}
+}
+
+impl From<crate::upload::service::b2::JsonErrorStruct> for Error {
+    fn from(value: crate::upload::service::b2::JsonErrorStruct) -> Self {
+        Self::B2(value)
+    }
 }
 
 impl<V> From<PoisonError<V>> for Error {

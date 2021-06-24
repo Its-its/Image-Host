@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
-use mongodb::{Cursor, bson::{DateTime, doc, oid::ObjectId}, results::InsertOneResult};
+use mongodb::{Cursor, bson::{DateTime, doc, oid::ObjectId}, results::{DeleteResult, InsertOneResult}};
 
 use crate::{error::Result, upload::image::UploadImageType};
 
@@ -129,6 +129,7 @@ pub struct ImageViews {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Image {
 	#[serde(rename = "_id")]
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub id: Option<ObjectId>,
 
 	pub name: String,
@@ -167,6 +168,10 @@ impl Image {
 
 	pub async fn upload(self, collection: &ImagesCollection) -> Result<InsertOneResult> {
 		Ok(collection.insert_one(self, None).await?)
+	}
+
+	pub async fn delete(self, collection: &ImagesCollection) -> Result<DeleteResult> {
+		Ok(collection.delete_one(doc! { "_id": self.id.unwrap() }, None).await?)
 	}
 }
 

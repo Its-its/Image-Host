@@ -1,6 +1,6 @@
 use actix_web::error as web_error;
 
-use crate::{WordManager, db};
+use crate::{Filename, WordManager, db};
 use crate::error::Result;
 
 use super::image_compress_and_create_icon;
@@ -31,7 +31,7 @@ impl Service {
 		Ok(())
 	}
 
-	pub fn hide_file(&mut self, file_name: &str) -> Result<()> {
+	pub fn hide_file(&mut self, file_name: Filename) -> Result<()> {
 		println!("[LOG]: Removing File Name {:?}", file_name);
 
 		Ok(())

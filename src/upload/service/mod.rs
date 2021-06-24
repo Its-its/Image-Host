@@ -74,7 +74,7 @@ impl Service {
 		}
 	}
 
-	pub async fn hide_file(&mut self, file_name: &str) -> Result<()> {
+	pub async fn hide_file(&mut self, file_name: Filename) -> Result<()> {
 		match self {
 			Self::Log(v) => v.hide_file(file_name),
 			Self::B2(v) => v.hide_file(file_name).await,

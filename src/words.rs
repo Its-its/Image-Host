@@ -92,7 +92,7 @@ impl Filename {
 // TODO: Change to Parse
 impl From<&str> for Filename {
 	fn from(file: &str) -> Self {
-		let mut split = file.rsplitn(1, '.');
+		let mut split = file.rsplitn(2, '.');
 
 		let mut format = split.next();
 
@@ -108,7 +108,7 @@ impl From<&str> for Filename {
 
 impl From<String> for Filename {
 	fn from(file: String) -> Self {
-		let mut split = file.rsplitn(1, '.');
+		let mut split = file.rsplitn(2, '.');
 
 		let mut format = split.next();
 

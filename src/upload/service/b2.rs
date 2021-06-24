@@ -9,7 +9,7 @@ use mongodb::bson::DateTime;
 
 use crate::config::ConfigServiceB2;
 use crate::db::model;
-use crate::{WordManager, db};
+use crate::{Filename, WordManager, db};
 use crate::error::{InternalError, Result};
 
 use super::image_compress_and_create_icon;
@@ -122,17 +122,17 @@ impl Service {
 		Ok(())
 	}
 
-	pub async fn hide_file(&mut self, file_name: &str) -> Result<()> {
+	pub async fn hide_file(&mut self, file_name: Filename) -> Result<()> {
 		{ // Image Upload
 			let mut path = self.image_sub_directory.clone();
-			path.push(file_name);
+			path.push(file_name.as_filename());
 
 			try_hide_file_multi(path.to_str().unwrap(), &self.auth, &self.bucket_id).await?;
 		}
 
 		{ // Icon Upload
 			let mut path = self.icon_sub_directory.clone();
-			path.push(format!("i{}", file_name));
+			path.push(format!("i{}.png", file_name.name()));
 
 			try_hide_file_multi(path.to_str().unwrap(), &self.auth, &self.bucket_id).await?;
 		}
@@ -159,11 +159,23 @@ async fn try_upload_file_multi(file_name: &str, image_buffer: Vec<u8>, auth: &B2
 		};
 
 		// TODO: Remove clone()
-		if let Err(e) = auth.upload_file(&upload_url, file_name, image_buffer.clone()).await {
-			prev_error = Some(e);
-			tokio::time::sleep(Duration::from_millis(1000)).await;
-			continue;
+		match auth.upload_file(&upload_url, file_name, image_buffer.clone()).await {
+			Ok(Err(error)) => {
+				prev_error = Some(error.into());
+				tokio::time::sleep(Duration::from_millis(1000)).await;
+				continue;
+			}
+
+			Err(error) => {
+				prev_error = Some(error);
+				tokio::time::sleep(Duration::from_millis(1000)).await;
+				continue;
+			}
+
+			_ => ()
 		}
+
+		return Ok(());
 	}
 
 	Err(prev_error.unwrap())
@@ -173,11 +185,28 @@ async fn try_hide_file_multi(file_path: &str, auth: &B2Authorization, bucket_id:
 	let mut prev_error = None;
 
 	for _ in 0..5 {
-		if let Err(e) = auth.hide_file(bucket_id, file_path).await {
-			prev_error = Some(e);
-			tokio::time::sleep(Duration::from_millis(1000)).await;
-			continue;
+		match auth.hide_file(bucket_id, file_path).await {
+			Ok(Err(error)) => {
+				// Ignore "Not Found" errors.
+				if error.status == 404 {
+					return Ok(());
+				}
+
+				prev_error = Some(error.into());
+				tokio::time::sleep(Duration::from_millis(1000)).await;
+				continue;
+			}
+
+			Err(error) => {
+				prev_error = Some(error);
+				tokio::time::sleep(Duration::from_millis(1000)).await;
+				continue;
+			}
+
+			_ => ()
 		}
+
+		return Ok(());
 	}
 
 	Err(prev_error.unwrap())
@@ -220,8 +249,7 @@ impl Credentials {
 		if resp.status().is_success() {
 			Ok(B2Authorization::new(self.id.clone(), resp.json().await?))
 		} else {
-			println!("{:#?}", resp.text().await?);
-			Err(InternalError::B2Authorization.into())
+			Err(resp.json::<JsonErrorStruct>().await?.into())
 		}
 	}
 }
@@ -283,7 +311,8 @@ impl B2Authorization {
 		}
 	}
 
-	pub async fn upload_file(&self, upload: &UploadUrlResponse, file_name: &str, image: Vec<u8>) -> Result<serde_json::Value> {
+	/// https://www.backblaze.com/b2/docs/b2_upload_file.html
+	pub async fn upload_file(&self, upload: &UploadUrlResponse, file_name: &str, image: Vec<u8>) -> Result<std::result::Result<serde_json::Value, JsonErrorStruct>> {
 		let client = reqwest::Client::new();
 
 		let mut sha = Sha1::new();
@@ -304,19 +333,19 @@ impl B2Authorization {
 			.await?;
 
 		if resp.status().is_success() {
-			Ok(resp.json().await?)
+			Ok(Ok(resp.json().await?))
 		} else {
-			println!("upload_file: {:?}", resp.text().await?);
-			Err(InternalError::B2UploadFile.into())
+			Ok(Err(resp.json().await?))
 		}
 	}
 
-	pub async fn hide_file(&self, bucket_id: &str, file_path: &str) -> Result<serde_json::Value> {
+	/// https://www.backblaze.com/b2/docs/b2_hide_file.html
+	pub async fn hide_file(&self, bucket_id: &str, file_path: &str) -> Result<std::result::Result<serde_json::Value, JsonErrorStruct>> {
 		let client = reqwest::Client::new();
 
 		let body = json!({
 			"bucketId": bucket_id,
-			"fileName": file_path
+			"fileName": encode_file_name(file_path)
 		});
 
 		let resp = client.post(format!("{}/b2api/v2/b2_hide_file", self.api_url).as_str())
@@ -326,10 +355,9 @@ impl B2Authorization {
 			.await?;
 
 		if resp.status().is_success() {
-			Ok(resp.json().await?)
+			Ok(Ok(resp.json().await?))
 		} else {
-			println!("upload_file: {:?}", resp.text().await?);
-			Err(InternalError::B2UploadFile.into())
+			Ok(Err(resp.json().await?))
 		}
 	}
 }
@@ -343,6 +371,15 @@ pub struct UploadUrlResponse {
 }
 
 
+#[derive(Debug, Serialize, Deserialize, thiserror::Error)]
+#[error("Backblaze Error:\nStatus: {status},\nCode: {code},\nMessage: {message}")]
+pub struct JsonErrorStruct {
+	status: isize,
+	code: String,
+	message: String
+}
+
+
 // Names can be pretty much any UTF-8 string up to 1024 bytes long. There are a few picky rules:
 // No character codes below 32 are allowed.
 // Backslashes are not allowed.
@@ -350,6 +387,11 @@ pub struct UploadUrlResponse {
 // File names cannot start with "/", end with "/", or contain "//".
 
 pub fn encode_file_name(file_name: &str) -> String {
-	file_name.replace("\\", "-")
-	.replace(" ", "%20")
+	let mut file_name = file_name.replace("\\", "/").replace("//", "--").replace(" ", "%20");
+
+	if file_name.starts_with('/') {
+		file_name.remove(0);
+	}
+
+	file_name
 }
