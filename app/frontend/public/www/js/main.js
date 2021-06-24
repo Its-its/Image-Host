@@ -1,4 +1,11 @@
 $(document).ready(function() {
+	const MONTHS = [
+		'January', 'February', 'March',
+		'April', 'May', 'June',
+		'July', 'August', 'September',
+		'October', 'November', 'December'
+	];
+
 	class ViewOptions {
 		constructor() {
 			this.container = $('.years-months');
@@ -94,7 +101,11 @@ $(document).ready(function() {
 				if (data.err != null) return console.error(data.err);
 
 				var year = data.response.year;
+				/** @type any[] */
 				var images = data.response.images;
+				console.log(images);
+				var images = images.filter(img => !img.deleted);
+				console.log(images);
 
 				$('#images').empty();
 				$('#images').append(uploader.createMonthContainer(month, images));
@@ -174,6 +185,7 @@ $(document).ready(function() {
 			var image = document.createElement('div');
 			image.classList.add('img-info', 'large-2');
 
+
 			var clickable = document.createElement('a');
 			clickable.classList.add('thumbnail');
 
@@ -187,6 +199,13 @@ $(document).ready(function() {
 			img.setAttribute('data-src', '//i.thick.at/i' + name + '.png');
 			img.setAttribute('align', 'center');
 			img.setAttribute('alt', 'Loading.');
+
+			img.addEventListener('click', event => {
+				if (event.shiftKey) {
+					var win = window.open(`i.thick.at/name.png`, '_blank');
+					win.focus();
+				}
+			});
 
 			clickable.appendChild(img);
 
@@ -230,6 +249,34 @@ $(document).ready(function() {
 			clickable.appendChild(spanBotRight);
 
 
+			// Hover Bottom Left
+			var spanBotLeft = document.createElement('span');
+			spanBotLeft.classList.add('hover', 'bottom-left');
+
+			var iLeft = document.createElement('i');
+			iLeft.classList.add('fa', 'fa-times', 'delete');
+			iLeft.setAttribute('aria-hidden', 'true');
+			spanBotLeft.appendChild(iLeft);
+
+
+			spanBotLeft.addEventListener('click', () => {
+				if (window.event.shiftKey) {
+					remove();
+				} else if (window.confirm('Are you use you would like to delete this file?')) {
+					remove();
+				}
+			});
+
+			function remove() {
+				if (image.parentElement) image.parentElement.removeChild(image);
+
+				const oReq = new XMLHttpRequest();
+				oReq.open('DELETE', `/image/${name}`);
+				oReq.send();
+			}
+
+			clickable.appendChild(spanBotLeft);
+
 			image.appendChild(clickable);
 
 			return image;
@@ -238,12 +285,7 @@ $(document).ready(function() {
 			var container = document.createElement('div');
 
 			var title = document.createElement('h3');
-			title.innerText = [
-				'January', 'February', 'March',
-				'April', 'May', 'June',
-				'July', 'August', 'September',
-				'October', 'November', 'December'
-			][month - 1];
+			title.innerText = MONTHS[month - 1];
 			container.appendChild(title);
 
 			var imageContainer = document.createElement('div');
@@ -276,14 +318,7 @@ $(document).ready(function() {
 	});
 
 	// Get Options
-	httpGetAsync('/user/settings', function(err, data) {
-		if (err != null) {
-			console.log('Error:', err);
-			return;
-		}
-
-		var data = JSON.parse(data);
-
+	$.get('/user/settings', function(data) {
 		uploader.joinDate = new Date(data.join_date);
 		uploader.uniqueID = data.unique_id;
 		uploader.uploadType = data.upload_type;
@@ -292,14 +327,11 @@ $(document).ready(function() {
 		uploader.viewOptions.viewYear(new Date().getFullYear());
 		uploader.viewOptions.viewMonth(new Date().getMonth() + 1);
 
-		// Has to be a better way thingy
-		// $('#urlTypeForm')[0][dataType + 1].checked = true;
+		$(`#urlTypeForm input[value="${data.uploadType}"]`).attr('checked', '');
 
-		// Url type submittion thingy
-		$('#urlTypeForm')
-		.submit(function() {
+		$('#urlTypeForm').submit(function() {
 			var data = $(this).serialize();
-			$.post('/user/settings', data);
+			$.post('user/urltype', data);
 			return false;
 		});
 	});
@@ -346,17 +378,3 @@ $(document).ready(function() {
 		series: []
 	});
 });
-
-
-function httpGetAsync(url, callback) {
-	var xmlHttp = new XMLHttpRequest();
-	xmlHttp.onreadystatechange = function() { 
-		if (xmlHttp.readyState == XMLHttpRequest.DONE && xmlHttp.status == 200) {
-			callback(null, xmlHttp.responseText);
-		} else if (xmlHttp.readyState == XMLHttpRequest.DONE) {
-			callback(xmlHttp);
-		}
-	}
-	xmlHttp.open("GET", url, true); // true for asynchronous 
-	xmlHttp.send(null);
-}
