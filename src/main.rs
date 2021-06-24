@@ -19,7 +19,7 @@ pub mod upload;
 pub mod error;
 pub mod words;
 pub mod config;
-pub mod http;
+pub mod web;
 pub mod db;
 
 
@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
 	// Upload Service
 	let service = Service::pick_service_from_config(&config.services).await?;
 
-	http::init(config, service).await?;
+	web::init(config, service).await?;
 
 	Ok(())
 }
