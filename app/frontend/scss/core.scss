@@ -1,7 +1,46 @@
+body {
+	background: #2e2f3a;
+}
+
 .body {
 	margin: 0;
 	height: 100%;
 }
+
+.top-bar {
+	background-color: #2e2f3a;
+
+	.menu {
+		background-color: #2e2f3a;
+	}
+
+	.menu-text {
+		color: white;
+	}
+}
+
+.thumbnail {
+	border-color: #232329;
+	border-width: 2px;
+}
+
+
+.fieldset {
+	border-color: #232329;
+
+	* {
+		color: white;
+	}
+
+	legend {
+		background: #232329;
+	}
+}
+
+h1,h2,h3,h4 {
+	color: white;
+}
+
 
 .years-months {
 	color: #8D8D8D;
@@ -11,30 +50,27 @@
 	.years {
 		span {
 			color: #7E7E7E;
-
-			&.active {
-				color: #454545;
-			}
 		}
 	}
 
 	.months {
 		span {
 			color: #c0c0c0;
-
-			&.valid {
-				color: #7E7E7E;
-			}
-
-			&.active {
-				color: #454545;
-			}
 		}
 	}
 
 	span {
-		cursor: pointer;
+		cursor: not-allowed;
 		margin-right: 6px;
+
+		&.valid {
+			cursor: pointer;
+			color: #7E7E7E;
+		}
+
+		&.active {
+			color: #454545;
+		}
 	}
 }
 
@@ -65,7 +101,7 @@
 
 #images {
 	text-align: center;
-	border: solid 1px #e0e0e0;
+	border: solid 1px #232329;
     padding: 12px;
     border-radius: 2px;
 }
@@ -77,6 +113,7 @@
     max-width: 200px;
     width: 200px;
     text-align: left;
+	margin: 3px;
 
 	a {
 		cursor: pointer;

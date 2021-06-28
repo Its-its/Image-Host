@@ -1,6 +1,39 @@
+body {
+  background: #2e2f3a;
+}
+
 .body {
   margin: 0;
   height: 100%;
+}
+
+.top-bar {
+  background-color: #2e2f3a;
+}
+.top-bar .menu {
+  background-color: #2e2f3a;
+}
+.top-bar .menu-text {
+  color: white;
+}
+
+.thumbnail {
+  border-color: #232329;
+  border-width: 2px;
+}
+
+.fieldset {
+  border-color: #232329;
+}
+.fieldset * {
+  color: white;
+}
+.fieldset legend {
+  background: #232329;
+}
+
+h1, h2, h3, h4 {
+  color: white;
 }
 
 .years-months {
@@ -11,21 +44,19 @@
 .years-months .years span {
   color: #7E7E7E;
 }
-.years-months .years span.active {
-  color: #454545;
-}
 .years-months .months span {
   color: #c0c0c0;
 }
-.years-months .months span.valid {
+.years-months span {
+  cursor: not-allowed;
+  margin-right: 6px;
+}
+.years-months span.valid {
+  cursor: pointer;
   color: #7E7E7E;
 }
-.years-months .months span.active {
+.years-months span.active {
   color: #454545;
-}
-.years-months span {
-  cursor: pointer;
-  margin-right: 6px;
 }
 
 .center {
@@ -55,7 +86,7 @@
 
 #images {
   text-align: center;
-  border: solid 1px #e0e0e0;
+  border: solid 1px #232329;
   padding: 12px;
   border-radius: 2px;
 }
@@ -67,6 +98,7 @@
   max-width: 200px;
   width: 200px;
   text-align: left;
+  margin: 3px;
 }
 .img-info a {
   cursor: pointer;
@@ -97,11 +129,6 @@
 }
 .img-info a .hover.bottom-right {
   right: 4px;
-  bottom: 4px;
-  top: initial;
-}
-.img-info a .hover.bottom-left {
-  left: 4px;
   bottom: 4px;
   top: initial;
 }

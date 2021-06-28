@@ -46,6 +46,7 @@ $(document).ready(function() {
 				var currentYear = joinDate.getFullYear();
 
 				var span = document.createElement('span');
+				span.classList.add('valid');
 				span.innerText = currentYear;
 				this.years.append(span);
 
