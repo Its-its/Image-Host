@@ -251,6 +251,34 @@ impl From<Image> for SlimImage {
 }
 
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Gallery {
+	#[serde(rename = "_id")]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub id: Option<ObjectId>,
+
+	pub user_id: ObjectId,
+
+	pub title: Option<String>,
+
+	pub images: Vec<GalleryImage>,
+
+	pub uploaded_at: DateTime,
+	pub created_at: DateTime,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GalleryImage {
+	pub id: ObjectId,
+
+	pub file_name: String,
+
+	pub description: Option<String>,
+
+	pub created_at: DateTime,
+}
+
+
 
 pub async fn does_image_name_exist(f_name: &str, collection: &ImagesCollection) -> Result<bool> {
 	Ok(collection.count_documents(doc! { "name": f_name }, None).await? != 0)

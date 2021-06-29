@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Gallery | {{ title }}</title>
+
+		<link rel="shortcut icon" href="FAVICON.ico">
+
+		<link rel="stylesheet" href="//cdn.jsdelivr.net/foundation/6.2.3/foundation.min.css">
+		<link rel="stylesheet" href="/css/lib/font-awesome-4.0.3.css">
+		<link rel="stylesheet" href="/css/core.css">
+	</head>
+	<body>
+		<!-- Navbar -->
+		<div class="top-bar">
+			<div class="top-bar-left">
+				<ul class="dropdown menu" data-dropdown-menu>
+					<li class="menu-text">{{ title }}</li>
+				</ul>
+			</div>
+			<div class="top-bar-right">
+				<ul class="menu">
+					<a href="/" class="button">Home</a>
+					<a href="/profile" class="button">Profile</a>
+				</ul>
+			</div>
+		</div>
+
+		<div style="background-image: url('/img/bg2.jpg'); padding: 6px 0; margin-bottom: 10px;"></div>
+
+		<!-- Images -->
+		<div class="row large-12" id="images"></div>
+
+		<!-- script type="text/javascript" src="/js/lib/jquery-2.1.4.js"></script -->
+		<!-- script type="text/javascript" src="/js/lib/jquery.unveil.js"></script -->
+		<!-- script type="text/javascript" src="//cdn.jsdelivr.net/foundation/6.2.3/foundation.min.js"></script -->
+		<!-- script type="text/javascript" src="//cdn.jsdelivr.net/clipboard.js/1.5.12/clipboard.min.js"></script -->
+		<!-- script type="text/javascript" src="/js/lib/highcharts.js"></script -->
+		<!-- script type="text/javascript" src="/js/lib/hc-exporting.js"></script -->
+		<!-- script type="text/javascript" src="/js/lib/hc-dark-unica.js"></script -->
+		<script type="text/javascript" src="/gallery/main.js"></script>
+	</body>
+</html>

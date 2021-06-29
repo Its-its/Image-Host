@@ -8,7 +8,6 @@ use crate::Result;
 pub type Config = ConfigHelper<ConfigInner>;
 
 
-
 #[derive(Default)]
 pub struct ConfigHelper<C: DeserializeOwned + Serialize + Default> {
 	path: PathBuf,

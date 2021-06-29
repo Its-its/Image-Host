@@ -24,8 +24,7 @@ async fn profile(identity: Identity, hb: HandlebarsDataService<'_>, config: Conf
 	} else {
 		let location = config.read()?.get_base_url();
 
-		// TODO: Unauthorized doesn't redirect.
-		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
+		Ok(HttpResponse::TemporaryRedirect().append_header((header::LOCATION, location)).finish())
 	}
 }
 

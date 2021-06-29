@@ -4,19 +4,19 @@ use mongodb::{Client, Collection, Database};
 
 use crate::{Result, config::ConfigDatabase};
 
-use self::model::{Image, ImageViews, User};
+use self::model::{Gallery, Image, ImageViews, User};
 
 pub mod model;
 
 
-// pub type SessionsCollection = Collection<>;
 pub type ImageViewsCollection = Collection<ImageViews>;
 pub type ImagesCollection = Collection<Image>;
 pub type UsersCollection = Collection<User>;
+pub type GalleryCollection = Collection<Gallery>;
 
 
 lazy_static! {
-	pub static ref DATABASE: RwLock<Option<Database>> = RwLock::new(None);
+	static ref DATABASE: RwLock<Option<Database>> = RwLock::new(None);
 }
 
 
@@ -39,4 +39,8 @@ pub fn get_images_collection() -> ImagesCollection {
 
 pub fn get_users_collection() -> UsersCollection {
 	DATABASE.read().unwrap().as_ref().unwrap().collection("users")
+}
+
+pub fn get_gallery_collection() -> GalleryCollection {
+	DATABASE.read().unwrap().as_ref().unwrap().collection("gallery")
 }

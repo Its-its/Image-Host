@@ -17,6 +17,7 @@ use crate::upload::service::Service;
 use crate::{Result, WordManager, db::{get_images_collection, model}, error::InternalError, words};
 
 
+mod gallery;
 mod profile;
 
 
@@ -284,6 +285,7 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 
 	// Handlebars
 	let mut handlebars = Handlebars::new();
+	handlebars.set_dev_mode(true);
 	handlebars.register_templates_directory(".hbs", "./app/frontend/views").unwrap();
 	let handlebars_ref = web::Data::new(handlebars);
 
@@ -321,6 +323,9 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 			.service(profile::update_settings)
 			.service(profile::get_images)
 			.service(profile::get_settings)
+
+			.service(gallery::home)
+			.service(gallery::item)
 
 			.service(get_image_info)
 			.service(update_image)
