@@ -2,6 +2,7 @@ use std::sync::RwLock;
 use std::{convert::TryInto, sync::Mutex};
 
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
+use actix_web::web::Data;
 use futures::TryStreamExt;
 
 use handlebars::Handlebars;
@@ -276,6 +277,8 @@ pub async fn get_uid(mut field: Field) -> Result<String> {
 
 
 pub async fn init(config: Config, service: Service) -> Result<()> {
+	let addr = format!("{}:{}", config.website.base_url, config.website.port);
+
 	println!(
 		"Prefixes: {}\nSuffixes: {}\nCombinations: {}",
 		words::PREFIXES.len(),
@@ -307,8 +310,8 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 					.secure(false)
 			))
 
-			.data(Mutex::new(WordManager::new()))
-			.data(JsonConfig::default().limit(4096))
+			.app_data(Data::new(Mutex::new(WordManager::new())))
+			.app_data(Data::new(JsonConfig::default().limit(4096)))
 
 			.app_data(service.clone())
 			.app_data(config.clone())
@@ -338,7 +341,7 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 			)
 			.service(actix_files::Files::new("/", "./app/frontend/public/www"))
 	})
-	.bind("127.0.0.1:8080")?
+	.bind(addr)?
 	.run()
 	.await?;
 
