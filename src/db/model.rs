@@ -86,17 +86,12 @@ pub async fn find_user_by_id<I: Into<UserId>>(user_id: I, collection: &UsersColl
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserData {
-	#[serde(rename = "type")]
 	pub upload_type: UploadImageType,
-	#[serde(rename = "banned")]
 	pub is_banned: bool,
-	#[serde(rename = "joinDate")]
 	pub join_date: DateTime,
-	#[serde(rename = "uid")]
 	pub unique_id: String,
-	#[serde(rename = "images")]
 	pub image_count: i32,
-	#[serde(rename = "deletions")]
+
 	pub deletion_count: i32,
 }
 
@@ -105,7 +100,6 @@ pub struct UserTwitter {
 	pub id: String,
 	pub token: String,
 	pub username: String,
-	#[serde(rename = "displayName")]
 	pub display_name: String,
 }
 
@@ -119,7 +113,6 @@ pub struct ImageViews {
 
 	pub image_id: i32,
 
-	#[serde(rename = "viewCount")]
 	pub view_count: i64
 }
 
@@ -133,9 +126,7 @@ pub struct Image {
 	pub id: Option<ObjectId>,
 
 	pub name: String,
-	#[serde(rename = "type")]
 	pub file_type: String,
-	#[serde(rename = "size")]
 	pub file_size: i64,
 
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -147,10 +138,8 @@ pub struct Image {
 	#[serde(default)]
 	pub is_edited: bool,
 
-	#[serde(rename = "favorite")]
 	pub is_favorite: bool,
 
-	#[serde(rename = "views")]
 	pub view_count: i32,
 
 	pub deleted: Option<DateTime>,
@@ -159,7 +148,6 @@ pub struct Image {
 
 	pub uploader: ImageUploader,
 
-	#[serde(rename = "date")]
 	pub upload_date: DateTime,
 }
 
