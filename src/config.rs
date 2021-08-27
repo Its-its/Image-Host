@@ -106,8 +106,7 @@ impl ConfigInner {
 impl Default for ConfigInner {
 	fn default() -> Self {
 		Self {
-
-			session_secret: "secret message".into(),
+			session_secret: "secret key goes here".into(),
 
 			database: ConfigDatabase::default(),
 

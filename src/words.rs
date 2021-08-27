@@ -185,3 +185,8 @@ pub fn gen_sample_alphanumeric(amount: usize, rng: &mut ThreadRng) -> String {
 		.map(char::from)
 		.collect()
 }
+
+
+pub fn gen_uuid() -> String {
+	uuid::Uuid::new_v4().to_hyphenated().to_string()
+}

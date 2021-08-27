@@ -58,7 +58,10 @@ pub enum InternalError {
 	B2UploadFile,
 
 	#[error("The Upload Size is Too Large")]
-	UploadSizeTooLarge
+	UploadSizeTooLarge,
+
+	#[error("The UID is Too Large")]
+	UidSizeTooLarge
 }
 
 

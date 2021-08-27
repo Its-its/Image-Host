@@ -16,8 +16,8 @@ use crate::{Filename, Result, WordManager, db::get_images_collection};
 #[derive(Debug, Clone, Copy)]
 pub enum UploadImageType {
 	PrefixAndSuffix = 0,
-	Alphabetical8,
-	Alphabetical32,
+	Alphabetical8 = 1,
+	Alphabetical32 = 2,
 	// Crypto
 }
 
@@ -48,20 +48,20 @@ impl UploadImageType {
 }
 
 impl From<UploadImageType> for u8 {
-    fn from(val: UploadImageType) -> Self {
-        val.to_num()
-    }
+	fn from(val: UploadImageType) -> Self {
+		val.to_num()
+	}
 }
 
-
+// Bson Doesn't Support Unsigned Integers.
 impl Serialize for UploadImageType {
 	fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> where S: Serializer {
-		serializer.serialize_u8(self.to_num())
+		serializer.serialize_i32(self.to_num() as i32)
 	}
 }
 
 impl<'de> Deserialize<'de> for UploadImageType {
 	fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error> where D: Deserializer<'de> {
-		Ok(Self::from_num(u8::deserialize(deserializer)?).unwrap())
+		Ok(Self::from_num(i32::deserialize(deserializer)? as u8).unwrap())
 	}
 }
