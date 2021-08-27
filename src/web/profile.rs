@@ -1,8 +1,9 @@
 use actix_identity::Identity;
 use actix_web::{HttpResponse, get, http::header, post, web};
 use futures::TryStreamExt;
+use mongodb::bson::doc;
 
-use crate::{Result, db::{get_images_collection, get_users_collection, model}, web::get_slim_user_identity};
+use crate::{Result, db::{get_images_collection, get_users_collection, model}, upload::image::UploadImageType, web::get_slim_user_identity};
 
 use super::{ConfigDataService, HandlebarsDataService};
 
@@ -40,16 +41,29 @@ pub struct Settings {
 
 #[post("/user/settings")]
 async fn update_settings(identity: Identity, data: web::Form<Settings>) -> Result<HttpResponse> {
-	// let user = match get_slim_user_identity(identity) {
-	// 	Some(u) => u,
-	// 	None => {
-	// 		return Ok(HttpResponse::Unauthorized().body("Not Logged in."));
-	// 	}
-	// };
+	let user = match get_slim_user_identity(identity) {
+		Some(u) => u,
+		None => {
+			return Ok(HttpResponse::Unauthorized().body("Not Logged in."));
+		}
+	};
 
-	// Update settings (upload_type, unique_id)
 
-	println!("{:#?}", data);
+	if let Some(upload_id) = data.upload_type.and_then(UploadImageType::from_num) {
+		get_users_collection()
+			.update_one(
+				doc! {
+					"data.unique_id": user.unique_id
+				},
+				doc! {
+					"$set": {
+						"data.upload_type": upload_id as i32
+					}
+				},
+				None
+			)
+			.await?;
+	}
 
 	Ok(HttpResponse::Ok().json("{}".to_string()))
 }
