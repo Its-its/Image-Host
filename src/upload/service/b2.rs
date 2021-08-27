@@ -8,7 +8,7 @@ use base64::encode as b64encode;
 use mongodb::bson::DateTime;
 
 use crate::config::ConfigServiceB2;
-use crate::db::model;
+use crate::db::model::{self, User};
 use crate::{Filename, WordManager, db};
 use crate::error::{InternalError, Result};
 
@@ -62,7 +62,7 @@ impl Service {
 		})
 	}
 
-	pub async fn process_files(&mut self, uid: String, file_data: Vec<u8>, content_type: String, ip_addr: String, words: &mut WordManager) -> Result<()> {
+	pub async fn process_files(&mut self, user: User, file_data: Vec<u8>, content_type: String, ip_addr: String, words: &mut WordManager) -> Result<Filename> {
 		let collection = db::get_images_collection();
 
 		let file_name = words.get_next_filename_prefix_suffix(&collection).await?;
@@ -105,12 +105,12 @@ impl Service {
 			view_count: 0,
 
 			uploader: model::ImageUploader {
-				uid,
+				uid: user.data.unique_id,
 				ip: Some(ip_addr)
 			},
 
 			upload_date: DateTime::now(),
-			uploader_id: None,
+			uploader_id: Some(user.id),
 
 			tags: None,
 			custom_name: None,
@@ -121,7 +121,7 @@ impl Service {
 		let res = new_image.upload(&collection).await?;
 		println!("Insert: {:?}", res);
 
-		Ok(())
+		Ok(file_name)
 	}
 
 	pub async fn hide_file(&mut self, file_name: Filename) -> Result<()> {

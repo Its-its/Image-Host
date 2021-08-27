@@ -183,11 +183,11 @@ $(document).ready(function() {
 			image: null
 		},
 		createImage: function(name, views, favorited, type) {
-			var image = document.createElement('div');
+			let image = document.createElement('div');
 			image.classList.add('img-info', 'large-2');
 
 
-			var clickable = document.createElement('a');
+			let clickable = document.createElement('a');
 			clickable.classList.add('thumbnail');
 
 			clickable.setAttribute('data-target', name);
@@ -195,7 +195,7 @@ $(document).ready(function() {
 
 			// Image
 
-			var img = document.createElement('img');
+			let img = document.createElement('img');
 			img.classList.add('img');
 			img.setAttribute('data-src', '//i.thick.at/i' + name + '.png');
 			img.setAttribute('align', 'center');
@@ -203,7 +203,7 @@ $(document).ready(function() {
 
 			img.addEventListener('click', event => {
 				if (event.shiftKey) {
-					var win = window.open(`i.thick.at/name.png`, '_blank');
+					let win = window.open(`https://i.thick.at/${name}.png`, '_blank');
 					win.focus();
 				}
 			});
@@ -211,53 +211,53 @@ $(document).ready(function() {
 			clickable.appendChild(img);
 
 			// Hover Left
-			var spanLeft = document.createElement('span');
-			spanLeft.classList.add('hover', 'left');
+			let spanTopLeft = document.createElement('span');
+			spanTopLeft.classList.add('hover', 'left');
 
-			var iLeft = document.createElement('i');
-			iLeft.classList.add('fa', 'fa-eye');
-			iLeft.setAttribute('aria-hidden', 'true');
-			spanLeft.appendChild(iLeft);
+			let iTopLeft = document.createElement('i');
+			iTopLeft.classList.add('fa', 'fa-eye');
+			iTopLeft.setAttribute('aria-hidden', 'true');
+			spanTopLeft.appendChild(iTopLeft);
 
-			var numb = document.createElement('span');
+			let numb = document.createElement('span');
 			numb.innerText = views;
-			spanLeft.appendChild(numb);
+			spanTopLeft.appendChild(numb);
 
-			clickable.appendChild(spanLeft);
+			clickable.appendChild(spanTopLeft);
 
 			// Hover Right
-			var spanRight = document.createElement('span');
-			spanRight.classList.add('hover', 'right', 'favorite');
+			let spanTopRight = document.createElement('span');
+			spanTopRight.classList.add('hover', 'right', 'favorite');
 
-			var iLeft = document.createElement('i');
-			iLeft.classList.add('fa', 'fa-star');
-			iLeft.setAttribute('aria-hidden', 'true');
-			iLeft.style.color = favorited ? 'yellow' : 'white';
-			spanRight.appendChild(iLeft);
+			let iTopRight = document.createElement('i');
+			iTopRight.classList.add('fa', 'fa-star');
+			iTopRight.setAttribute('aria-hidden', 'true');
+			iTopRight.style.color = favorited ? 'yellow' : 'white';
+			spanTopRight.appendChild(iTopRight);
 
-			clickable.appendChild(spanRight);
+			clickable.appendChild(spanTopRight);
 
 			// Hover Bottom Right
-			var spanBotRight = document.createElement('span');
+			let spanBotRight = document.createElement('span');
 			spanBotRight.classList.add('hover', 'bottom-right');
 
-			var iLeft = document.createElement('i');
-			iLeft.classList.add('fa', 'fa-clipboard', 'copy');
-			iLeft.setAttribute('data-clipboard-text', 'https://i.thick.at/' + name + '.' + type);
-			iLeft.setAttribute('aria-hidden', 'true');
-			spanBotRight.appendChild(iLeft);
+			let iBotRight = document.createElement('i');
+			iBotRight.classList.add('fa', 'fa-clipboard', 'copy');
+			iBotRight.setAttribute('data-clipboard-text', 'https://i.thick.at/' + name + '.' + type);
+			iBotRight.setAttribute('aria-hidden', 'true');
+			spanBotRight.appendChild(iBotRight);
 
 			clickable.appendChild(spanBotRight);
 
 
 			// Hover Bottom Left
-			var spanBotLeft = document.createElement('span');
+			let spanBotLeft = document.createElement('span');
 			spanBotLeft.classList.add('hover', 'bottom-left');
 
-			var iLeft = document.createElement('i');
-			iLeft.classList.add('fa', 'fa-times', 'delete');
-			iLeft.setAttribute('aria-hidden', 'true');
-			spanBotLeft.appendChild(iLeft);
+			let iBotLeft = document.createElement('i');
+			iBotLeft.classList.add('fa', 'fa-times', 'delete');
+			iBotLeft.setAttribute('aria-hidden', 'true');
+			spanBotLeft.appendChild(iBotLeft);
 
 
 			spanBotLeft.addEventListener('click', () => {
@@ -292,9 +292,7 @@ $(document).ready(function() {
 			var imageContainer = document.createElement('div');
 			imageContainer.className = 'row large-12';
 
-			images.forEach(function(image) {
-				imageContainer.appendChild(uploader.createImage(image.name, image.views, image.favorite, image.type));
-			});
+			images.forEach(image => imageContainer.appendChild(uploader.createImage(image.name, image.view_count, image.is_favorite, image.file_type)));
 
 			container.appendChild(imageContainer);
 
@@ -332,7 +330,7 @@ $(document).ready(function() {
 
 		$('#urlTypeForm').submit(function() {
 			var data = $(this).serialize();
-			$.post('user/urltype', data);
+			$.post('user/settings', data);
 			return false;
 		});
 	});

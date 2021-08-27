@@ -3,7 +3,7 @@ use mongodb::{Cursor, bson::{DateTime, doc, oid::ObjectId}, results::{DeleteResu
 
 use crate::{error::Result, upload::image::UploadImageType};
 
-use super::{ImagesCollection, UsersCollection, get_users_collection};
+use super::{AuthCollection, ImagesCollection, UsersCollection, get_users_collection};
 
 pub enum UserId {
 	Id(ObjectId),
@@ -37,17 +37,29 @@ pub struct User {
 	#[serde(rename = "_id")]
 	pub id: ObjectId,
 
-	pub twitter: Option<UserTwitter>,
+	pub twitter: UserTwitter,
 
 	pub data: UserData,
 
 	#[serde(rename = "__v")]
-	pub version_key: i32
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub version_key: Option<i32>
 }
+
+impl User {
+	pub fn into_slim(self) -> SlimUser {
+		SlimUser {
+			id: self.id,
+			unique_id: self.data.unique_id
+		}
+	}
+}
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SlimUser {
-	pub id: ObjectId
+	pub id: ObjectId,
+	pub unique_id: String
 }
 
 impl SlimUser {
@@ -57,18 +69,20 @@ impl SlimUser {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct NewUser<'a> {
-	pub twitter_id: &'a str,
-	pub twitter_token: &'a str,
-	pub twitter_display_name: &'a str,
-	pub twitter_username: &'a str,
+pub struct NewUser {
+	pub twitter: UserTwitter,
+	pub data: UserData,
+}
 
-	pub upload_type: i32,
-	pub is_banned: bool,
-	pub join_date: NaiveDateTime,
-	pub unique_id: String,
-	pub image_count: i32,
-	pub deletion_count: i32,
+impl NewUser {
+	pub fn into_user(self, id: ObjectId) -> User {
+		User {
+			id,
+			twitter: self.twitter,
+			data: self.data,
+			version_key: None
+		}
+	}
 }
 
 pub async fn find_user_by_id<I: Into<UserId>>(user_id: I, collection: &UsersCollection) -> Result<Option<User>> {
@@ -84,8 +98,14 @@ pub async fn find_user_by_id<I: Into<UserId>>(user_id: I, collection: &UsersColl
 }
 
 
+
+fn bson_unsigned_fix<S>(value: &UploadImageType, serializer: S) -> std::result::Result<S::Ok, S::Error> where S: serde::Serializer {
+	serializer.serialize_i32(value.to_num() as i32)
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserData {
+	#[serde(serialize_with = "bson_unsigned_fix")]
 	pub upload_type: UploadImageType,
 	pub is_banned: bool,
 	pub join_date: DateTime,
@@ -97,7 +117,7 @@ pub struct UserData {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserTwitter {
-	pub id: String,
+	pub id: i64,
 	pub token: String,
 	pub username: String,
 	pub display_name: String,
@@ -267,6 +287,40 @@ pub struct GalleryImage {
 }
 
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AuthVerify {
+	#[serde(rename = "_id")]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub id: Option<ObjectId>,
+
+	pub oauth_token: String,
+
+	pub oauth_token_secret: String
+}
+
+
+pub async fn create_auth_verify(oauth_token: String, oauth_token_secret: String, collection: &AuthCollection) -> Result<()> {
+	collection.insert_one(
+		AuthVerify {
+			id: None,
+			oauth_token,
+			oauth_token_secret
+		},
+		None
+	).await?;
+
+	Ok(())
+}
+
+pub async fn find_and_remove_auth_verify(oauth_token: &str, collection: &AuthCollection) -> Result<Option<AuthVerify>> {
+	Ok(collection.find_one_and_delete(
+		doc! { "oauth_token": oauth_token },
+		None
+	).await?)
+}
+
+
+
 
 pub async fn does_image_name_exist(f_name: &str, collection: &ImagesCollection) -> Result<bool> {
 	Ok(collection.count_documents(doc! { "name": f_name }, None).await? != 0)
@@ -285,7 +339,7 @@ pub async fn find_images_by_date<I: Into<UserId>>(f_id: I, f_year: u32, f_month:
 			let found = collection.find(
 				doc! {
 					"uploader_id": f_id,
-					"date": {
+					"upload_date": {
 						"$gte": DateTime::from_millis(naive_cm.timestamp_millis()),
 						"$lte": DateTime::from_millis(naive_nm.timestamp_millis())
 					}
@@ -297,11 +351,9 @@ pub async fn find_images_by_date<I: Into<UserId>>(f_id: I, f_year: u32, f_month:
 		},
 
 		UserId::UniqueId(f_id) => {
-			// let user = find_user_by_id(f_id, &get_users_collection()).await?.expect("Unable to find user");
-
 			let doc = doc! {
 				"uploader.uid": f_id,
-				"date": {
+				"upload_date": {
 					"$gte": DateTime::from_millis(naive_cm.timestamp_millis()),
 					"$lte": DateTime::from_millis(naive_nm.timestamp_millis())
 				}

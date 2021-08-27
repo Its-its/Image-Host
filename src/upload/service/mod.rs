@@ -1,16 +1,10 @@
 use image::ImageFormat;
 
-use crate::{
-	Filename,
-	Result,
-	WordManager,
-
-	config::{
+use crate::{Filename, Result, WordManager, config::{
 		ConfigServiceB2,
 		ConfigServiceFileSystem,
 		ConfigServices
-	}
-};
+	}, db::model::User};
 
 
 pub mod b2;
@@ -66,10 +60,10 @@ impl Service {
 	}
 
 
-	pub async fn process_files(&mut self, uid: String, file_data: Vec<u8>, content_type: String, ip_addr: String, words: &mut WordManager) -> Result<()> {
+	pub async fn process_files(&mut self, user: User, file_data: Vec<u8>, content_type: String, ip_addr: String, words: &mut WordManager) -> Result<Filename> {
 		match self {
-			Self::Log(v) => v.process_files(uid, file_data, content_type, ip_addr, words).await,
-			Self::B2(v) => v.process_files(uid, file_data, content_type, ip_addr, words).await,
+			Self::Log(v) => v.process_files(user, file_data, content_type, ip_addr, words).await,
+			Self::B2(v) => v.process_files(user, file_data, content_type, ip_addr, words).await,
 			Self::FileSystem(v) => v.process_files(file_data, content_type, words).await
 		}
 	}

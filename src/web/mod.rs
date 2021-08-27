@@ -13,7 +13,10 @@ use actix_multipart::{Field, Multipart};
 use mongodb::bson::doc;
 
 use crate::Filename;
+use crate::auth::twitter;
 use crate::config::Config;
+use crate::db::get_users_collection;
+use crate::db::model::find_user_by_id;
 use crate::upload::service::Service;
 use crate::{Result, WordManager, db::{get_images_collection, model}, error::InternalError, words};
 
@@ -23,10 +26,10 @@ mod profile;
 
 
 // Services
-type UploadDataService = web::Data<Mutex<Service>>;
-type ConfigDataService = web::Data<RwLock<Config>>;
-type WordDataService = web::Data<Mutex<WordManager>>;
-type HandlebarsDataService<'a> = web::Data<Handlebars<'a>>;
+pub type UploadDataService = web::Data<Mutex<Service>>;
+pub type ConfigDataService = web::Data<RwLock<Config>>;
+pub type WordDataService = web::Data<Mutex<WordManager>>;
+pub type HandlebarsDataService<'a> = web::Data<Handlebars<'a>>;
 
 
 pub fn get_slim_user_identity(identity: Identity) -> Option<model::SlimUser> {
@@ -54,7 +57,7 @@ async fn index(identity: Identity, hb: HandlebarsDataService<'_>, config: Config
 #[get("/logout")]
 async fn logout(identity: Identity, _hb: HandlebarsDataService<'_>) -> HttpResponse {
 	identity.forget();
-	HttpResponse::Ok().finish()
+	HttpResponse::Ok().insert_header((header::LOCATION, "https://thick.at")).finish()
 }
 
 
@@ -71,12 +74,11 @@ async fn get_image_info(identity: Identity, path: web::Path<String>) -> Result<H
 
 	let image = collection.find_one(
 		doc! {
+			"uploader_id": user.id,
 			"name": path.as_ref()
 		},
 		None
 	).await?;
-
-	// TODO: Check if user is the one who uploaded it.
 
 	Ok(HttpResponse::Found().json(image))
 }
@@ -112,8 +114,6 @@ async fn update_image(identity: Identity, path: web::Path<String>, form: web::Fo
 		None
 	).await?;
 
-	// TODO: Check if user is the one who uploaded it.
-
 	Ok(HttpResponse::Found().json(res))
 }
 
@@ -122,38 +122,35 @@ async fn update_image(identity: Identity, path: web::Path<String>, form: web::Fo
 async fn remove_image(identity: Identity, file_name: web::Path<String>, service: UploadDataService) -> Result<HttpResponse> {
 	let collection = get_images_collection();
 
-	// let user = match get_slim_user_identity(identity) {
-	// 	Some(u) => u,
-	// 	None => {
-	// 		return Ok(HttpResponse::Unauthorized().body("Not Logged in."));
-	// 	}
-	// };
+	let user = match get_slim_user_identity(identity) {
+		Some(u) => u,
+		None => {
+			return Ok(HttpResponse::Unauthorized().body("Not Logged in."));
+		}
+	};
 
 	let res = collection.find_one(
 		doc! {
+			"uploader_id": user.id,
 			"name": file_name.as_ref()
 		},
 		None
 	).await?;
 
 	if let Some(image) = res {
-		// if image.uploader_id != user.id { Ok(HttpResponse::Unauthorized().finish()) }
-
 		let file_name = Filename::from(image.full_file_name());
 
 		service.lock()?.hide_file(file_name).await?;
 
 		let res = image.delete_request(&collection).await?;
 
-		// TODO: Check if user is the one who uploaded it.
-
 		if res.modified_count == 0 {
-			Ok(HttpResponse::Unauthorized().finish())
+			Ok(HttpResponse::Unauthorized().body("Unable to delete image. Unmodified."))
 		} else {
-			Ok(HttpResponse::Ok().finish())
+			Ok(HttpResponse::Ok().body("Deleted Image."))
 		}
 	} else {
-		Ok(HttpResponse::NotFound().finish())
+		Ok(HttpResponse::NotFound().body("Unable to find Image uploaded by user."))
 	}
 }
 
@@ -234,9 +231,28 @@ async fn upload(req: HttpRequest, mut multipart: Multipart, service: UploadDataS
 	};
 
 
-	service.lock()?.process_files(uid, file_data, image_content_type, ip_addr, &mut *words.lock()?).await?;
+	let user = match find_user_by_id(uid, &get_users_collection()).await? {
+		Some(v) => v,
+		None => {
+			let base_url = config.read()?.get_base_url();
 
-	Ok(HttpResponse::Ok().finish())
+			return Ok(
+				HttpResponse::NotAcceptable()
+					.append_header((header::LOCATION, base_url + "error?type=Incorrect+Unique+ID"))
+					.body("Incorrect Unique ID")
+				);
+		}
+	};
+
+	let display_name = service.lock()?.process_files(user, file_data, image_content_type, ip_addr, &mut *words.lock()?).await?;
+
+	let path = format!("https://i.thick.at/{}", display_name.as_filename());
+
+	Ok(
+		HttpResponse::Found()
+			.append_header((header::LOCATION, path.clone()))
+			.body(format!("302 Found. Redirecting to {}", path))
+	)
 }
 
 
@@ -264,7 +280,7 @@ pub async fn get_uid(mut field: Field) -> Result<String> {
 			value.extend(bytes);
 
 			if value.len() > 100 {
-				return Err(InternalError::UploadSizeTooLarge.into());
+				return Err(InternalError::UidSizeTooLarge.into());
 			}
 		}
 
@@ -298,13 +314,16 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 	println!("Starting website.");
 
 	HttpServer::new(move || {
+		let config = config.clone();
+		let session_key = config.read().unwrap().session_secret.clone();
+
 		App::new()
 			// enable logger
 			.wrap(Logger::default())
 
 			// cookie session middleware
 			.wrap(IdentityService::new(
-				CookieIdentityPolicy::new("super secret key of my life why.".as_bytes())
+				CookieIdentityPolicy::new(session_key.as_bytes())
 					.name("auth")
 					.max_age(chrono::Duration::days(365).to_std().unwrap().try_into().unwrap())
 					.secure(false)
@@ -314,7 +333,7 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 			.app_data(Data::new(JsonConfig::default().limit(4096)))
 
 			.app_data(service.clone())
-			.app_data(config.clone())
+			.app_data(config)
 			.app_data(handlebars_ref.clone())
 
 			.service(upload)
@@ -334,11 +353,9 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 			.service(update_image)
 			.service(remove_image)
 
-			.service(
-				web::resource("/auth/twitter")
-					.route(web::get().to(crate::auth::twitter::get_twitter))
-					.route(web::post().to(crate::auth::twitter::post_twitter))
-			)
+			.service(twitter::get_twitter_oauth)
+			.service(twitter::get_twitter_oauth_callback)
+
 			.service(actix_files::Files::new("/", "./app/frontend/public/www"))
 	})
 	.bind(addr)?

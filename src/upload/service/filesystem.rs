@@ -20,7 +20,7 @@ impl Service {
 		})
 	}
 
-	pub async fn process_files(&mut self, file_data: Vec<u8>, content_type: String, words: &mut WordManager) -> Result<()> {
+	pub async fn process_files(&mut self, file_data: Vec<u8>, content_type: String, words: &mut WordManager) -> Result<Filename> {
 		// Directory check
 		if tokio::fs::metadata(&self.directory).await.is_err() {
 			tokio::fs::create_dir_all(&self.directory).await?;
@@ -50,7 +50,7 @@ impl Service {
 			tokio::fs::write(path, data.icon_data).await?;
 		}
 
-		Ok(())
+		Ok(file_name)
 	}
 
 	pub async fn hide_file(&mut self, file_name: Filename) -> Result<()> {
