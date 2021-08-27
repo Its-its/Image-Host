@@ -1,7 +1,7 @@
 use chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 use mongodb::{Cursor, bson::{DateTime, doc, oid::ObjectId}, results::{DeleteResult, InsertOneResult, UpdateResult}};
 
-use crate::{error::Result, upload::image::UploadImageType};
+use crate::{Filename, error::Result, upload::image::UploadImageType};
 
 use super::{AuthCollection, ImagesCollection, UsersCollection, get_users_collection};
 
@@ -172,8 +172,8 @@ pub struct Image {
 }
 
 impl Image {
-	pub fn full_file_name(&self) -> String {
-		format!("{}.{}", self.name, self.file_type)
+	pub fn get_file_name(&self) -> Filename {
+		Filename::new(self.name.clone()).set_format(self.file_type.clone())
 	}
 
 	pub async fn upload(self, collection: &ImagesCollection) -> Result<InsertOneResult> {

@@ -12,7 +12,6 @@ use actix_multipart::{Field, Multipart};
 
 use mongodb::bson::{Document, doc};
 
-use crate::Filename;
 use crate::auth::twitter;
 use crate::config::Config;
 use crate::db::get_users_collection;
@@ -144,7 +143,7 @@ async fn remove_image(identity: Identity, file_name: web::Path<String>, service:
 	).await?;
 
 	if let Some(image) = res {
-		let file_name = Filename::from(image.full_file_name());
+		let file_name = image.get_file_name();
 
 		service.lock()?.hide_file(file_name).await?;
 
@@ -159,10 +158,6 @@ async fn remove_image(identity: Identity, file_name: web::Path<String>, service:
 		Ok(HttpResponse::NotFound().body("Unable to find Image uploaded by user."))
 	}
 }
-
-
-
-
 
 
 #[post("/upload")]

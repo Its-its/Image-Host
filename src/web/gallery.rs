@@ -1,8 +1,8 @@
 use actix_identity::Identity;
 
-use actix_web::{App, HttpRequest, HttpResponse, HttpServer, http::header, get, post, delete, web};
+use actix_web::{HttpResponse, http::header, get, web};
 
-use crate::{Result, WordManager, db::{get_images_collection, get_users_collection, model}, error::InternalError, words};
+use crate::Result;
 
 use super::{ConfigDataService, HandlebarsDataService};
 
