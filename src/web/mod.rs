@@ -10,7 +10,7 @@ use handlebars::Handlebars;
 use actix_web::{App, HttpRequest, HttpResponse, HttpServer, http::header, middleware::Logger, get, post, delete, web::{self, JsonConfig}};
 use actix_multipart::{Field, Multipart};
 
-use mongodb::bson::doc;
+use mongodb::bson::{Document, doc};
 
 use crate::Filename;
 use crate::auth::twitter;
@@ -101,15 +101,21 @@ async fn update_image(identity: Identity, path: web::Path<String>, form: web::Fo
 		}
 	};
 
+	let form = form.into_inner();
+
+	let mut doc = Document::new();
+
+	if let Some(favorite) = form.favorite { doc.insert("favorite", favorite); }
+	// if let Some(custom_name) = form.custom_name { doc.insert("custom_name", custom_name); }
+	// if let Some(tags) = form.tags { doc.insert("tags", tags); }
+
 	let res = collection.update_one(
 		doc! {
 			"name": path.as_ref(),
 			"uploader_id": user.id
 		},
 		doc! {
-			"$set": {
-				// TODO
-			}
+			"$set": doc
 		},
 		None
 	).await?;
@@ -329,7 +335,7 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 					.secure(false)
 			))
 
-			.app_data(Data::new(Mutex::new(WordManager::new())))
+			.app_data(Data::new(Mutex::new(WordManager::default())))
 			.app_data(Data::new(JsonConfig::default().limit(4096)))
 
 			.app_data(service.clone())

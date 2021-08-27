@@ -130,12 +130,6 @@ pub struct WordManager {
 
 
 impl WordManager {
-	pub fn new() -> Self {
-		Self {
-			rng: ThreadRng::default()
-		}
-	}
-
 	pub async fn get_next_filename_prefix_suffix(&mut self, collection: &ImagesCollection) -> Result<Filename> {
 		self.loop_and_check_model_db(|rng| get_next_filename_unchecked(rng), collection).await
 	}
@@ -155,6 +149,14 @@ impl WordManager {
 			if !model::does_image_name_exist(file_name.name(), collection).await? {
 				break Ok(file_name);
 			}
+		}
+	}
+}
+
+impl Default for WordManager {
+	fn default() -> Self {
+		Self {
+			rng: ThreadRng::default()
 		}
 	}
 }

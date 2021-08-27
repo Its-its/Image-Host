@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use actix_web::error as web_error;
 use crypto::sha1::Sha1;
@@ -31,7 +31,9 @@ pub struct Service {
 	bucket_id: String,
 
 	image_sub_directory: PathBuf,
-	icon_sub_directory: PathBuf
+	icon_sub_directory: PathBuf,
+
+	last_authed: Instant
 }
 
 impl Service {
@@ -58,11 +60,17 @@ impl Service {
 			bucket_id: config.bucket_id.clone(),
 
 			image_sub_directory: PathBuf::from(&config.image_sub_directory),
-			icon_sub_directory: PathBuf::from(&config.icon_sub_directory)
+			icon_sub_directory: PathBuf::from(&config.icon_sub_directory),
+
+			last_authed: Instant::now()
 		})
 	}
 
 	pub async fn process_files(&mut self, user: User, file_data: Vec<u8>, content_type: String, ip_addr: String, words: &mut WordManager) -> Result<Filename> {
+		if self.last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
+			self.auth = self.credentials.authorize().await?;
+		}
+
 		let collection = db::get_images_collection();
 
 		let file_name = words.get_next_filename_prefix_suffix(&collection).await?;
@@ -81,14 +89,14 @@ impl Service {
 			let mut path = self.image_sub_directory.clone();
 			path.push(data.image_name);
 
-			try_upload_file_multi(path.to_str().unwrap(), data.image_data, &self.auth, &self.bucket_id).await?;
+			upload_file_multi_try(path.to_str().unwrap(), data.image_data, &self.auth, &self.bucket_id).await?;
 		}
 
 		{ // Icon Upload
 			let mut path = self.icon_sub_directory.clone();
 			path.push(data.icon_name);
 
-			try_upload_file_multi(path.to_str().unwrap(), data.icon_data, &self.auth, &self.bucket_id).await?;
+			upload_file_multi_try(path.to_str().unwrap(), data.icon_data, &self.auth, &self.bucket_id).await?;
 		}
 
 
@@ -116,15 +124,16 @@ impl Service {
 			custom_name: None,
 		};
 
-		println!("{:#?}", new_image);
-
-		let res = new_image.upload(&collection).await?;
-		println!("Insert: {:?}", res);
+		new_image.upload(&collection).await?;
 
 		Ok(file_name)
 	}
 
 	pub async fn hide_file(&mut self, file_name: Filename) -> Result<()> {
+		if self.last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
+			self.auth = self.credentials.authorize().await?;
+		}
+
 		{ // Image Upload
 			let mut path = self.image_sub_directory.clone();
 			path.push(file_name.as_filename());
@@ -146,7 +155,7 @@ impl Service {
 
 
 
-async fn try_upload_file_multi(file_name: &str, image_buffer: Vec<u8>, auth: &B2Authorization, bucket_id: &str) -> Result<()> {
+async fn upload_file_multi_try(file_name: &str, image_buffer: Vec<u8>, auth: &B2Authorization, bucket_id: &str) -> Result<()> {
 	let mut prev_error = None;
 
 	for _ in 0..5 {
@@ -270,6 +279,9 @@ struct B2AuthResponse {
 }
 
 
+
+
+/// Authorization Token expires after 24 hours.
 #[derive(Debug, Clone)]
 pub struct B2Authorization {
 	pub account_id: String,
@@ -308,7 +320,7 @@ impl B2Authorization {
 		if resp.status().is_success() {
 			Ok(resp.json().await?)
 		} else {
-			println!("get_upload_url: {:?}", resp.text().await?);
+			eprintln!("get_upload_url: {:?}", resp.text().await?);
 			Err(InternalError::B2GetUploadUrl.into())
 		}
 	}
@@ -320,9 +332,6 @@ impl B2Authorization {
 		let mut sha = Sha1::new();
 		sha.input(image.as_ref());
 		let sha = sha.result_str();
-
-		println!("Size: {}", image.len());
-		println!("Sha1: {}", sha);
 
 		let resp = client.post(upload.upload_url.as_str())
 			.header("Authorization", upload.authorization_token.as_str())
