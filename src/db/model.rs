@@ -5,6 +5,8 @@ use crate::{Filename, error::Result, upload::image::UploadImageType};
 
 use super::{AuthCollection, ImagesCollection, UsersCollection, get_users_collection};
 
+
+
 pub enum UserId {
 	Id(ObjectId),
 	UniqueId(String)
@@ -27,6 +29,8 @@ impl From<ObjectId> for UserId {
 		Self::Id(id)
 	}
 }
+
+
 
 
 
@@ -56,6 +60,8 @@ impl User {
 }
 
 
+
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SlimUser {
 	pub id: ObjectId,
@@ -63,10 +69,12 @@ pub struct SlimUser {
 }
 
 impl SlimUser {
-	pub async fn find_user(&self) -> Result<Option<User>> {
+	pub async fn upgrade(&self) -> Result<Option<User>> {
 		find_user_by_id(self.id, &get_users_collection()).await
 	}
 }
+
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewUser {
@@ -92,7 +100,7 @@ pub async fn find_user_by_id<I: Into<UserId>>(user_id: I, collection: &UsersColl
 		}
 
 		UserId::UniqueId(user_id) => {
-			Ok(collection.find_one(doc! { "unqiue_id": user_id }, None).await?)
+			Ok(collection.find_one(doc! { "data.unique_id": user_id }, None).await?)
 		}
 	}
 }
@@ -102,6 +110,8 @@ pub async fn find_user_by_id<I: Into<UserId>>(user_id: I, collection: &UsersColl
 fn bson_unsigned_fix<S>(value: &UploadImageType, serializer: S) -> std::result::Result<S::Ok, S::Error> where S: serde::Serializer {
 	serializer.serialize_i32(value.to_num() as i32)
 }
+
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserData {
@@ -115,6 +125,8 @@ pub struct UserData {
 	pub deletion_count: i32,
 }
 
+
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserTwitter {
 	pub id: i64,
@@ -122,6 +134,8 @@ pub struct UserTwitter {
 	pub username: String,
 	pub display_name: String,
 }
+
+
 
 
 
@@ -135,6 +149,9 @@ pub struct ImageViews {
 
 	pub view_count: i64
 }
+
+
+
 
 
 // IMAGES
@@ -176,7 +193,7 @@ impl Image {
 		Filename::new(self.name.clone()).set_format(self.file_type.clone())
 	}
 
-	pub async fn upload(self, collection: &ImagesCollection) -> Result<InsertOneResult> {
+	pub async fn upload(&self, collection: &ImagesCollection) -> Result<InsertOneResult> {
 		Ok(collection.insert_one(self, None).await?)
 	}
 
@@ -214,6 +231,8 @@ pub struct ImageUploader {
 	pub uid: String,
 	pub ip: Option<String>,
 }
+
+
 
 
 // Image sent to front-end
@@ -259,6 +278,9 @@ impl From<Image> for SlimImage {
 }
 
 
+
+
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Gallery {
 	#[serde(rename = "_id")]
@@ -278,13 +300,14 @@ pub struct Gallery {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GalleryImage {
 	pub id: ObjectId,
-
-	pub file_name: String,
-
-	pub description: Option<String>,
-
-	pub created_at: DateTime,
+	pub description: Option<String>
 }
+
+
+
+
+
+
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -297,6 +320,9 @@ pub struct AuthVerify {
 
 	pub oauth_token_secret: String
 }
+
+
+
 
 
 pub async fn create_auth_verify(oauth_token: String, oauth_token_secret: String, collection: &AuthCollection) -> Result<()> {

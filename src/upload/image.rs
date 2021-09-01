@@ -1,6 +1,6 @@
 use serde::{Serialize, Serializer, Deserialize, Deserializer};
 
-use crate::{Filename, Result, WordManager, db::get_images_collection};
+use crate::{Filename, Result, WordManager, db::ImagesCollection};
 
 
 // 0: Random Name	HyperSnowmobile123
@@ -35,13 +35,11 @@ impl UploadImageType {
 		self as u8
 	}
 
-	pub async fn get_link_name(self, words: &mut WordManager) -> Result<Filename> {
-		let collection = get_images_collection();
-
+	pub async fn get_link_name(self, words: &mut WordManager, collection: &ImagesCollection) -> Result<Filename> {
 		match self {
-			Self::PrefixAndSuffix => words.get_next_filename_prefix_suffix(&collection).await,
-			Self::Alphabetical8 => words.get_next_filename_sized_8(&collection).await,
-			Self::Alphabetical32 => words.get_next_filename_sized_32(&collection).await,
+			Self::PrefixAndSuffix => words.get_next_filename_prefix_suffix(collection).await,
+			Self::Alphabetical8 => words.get_next_filename_sized_8(collection).await,
+			Self::Alphabetical32 => words.get_next_filename_sized_32(collection).await,
 			// Self::Crypto =>
 		}
 	}

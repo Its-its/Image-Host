@@ -16,6 +16,7 @@ use crate::auth::twitter;
 use crate::config::Config;
 use crate::db::get_users_collection;
 use crate::db::model::find_user_by_id;
+use crate::upload::image::UploadImageType;
 use crate::upload::service::Service;
 use crate::{Result, WordManager, db::{get_images_collection, model}, error::InternalError, words};
 
@@ -161,7 +162,20 @@ async fn remove_image(identity: Identity, file_name: web::Path<String>, service:
 
 
 #[post("/upload")]
-async fn upload(req: HttpRequest, mut multipart: Multipart, service: UploadDataService, words: WordDataService, config: ConfigDataService) -> Result<HttpResponse> {
+async fn upload(
+	req: HttpRequest,
+	mut multipart: Multipart,
+	service: UploadDataService,
+	words: WordDataService,
+	config: ConfigDataService,
+	identity: Identity
+) -> Result<HttpResponse> {
+	let is_gallery_upload = req.headers()
+		.get(header::REFERER)
+		.and_then(|v| v.to_str().ok())
+		.map(|v| v.to_lowercase().contains("/g/")) // TODO: Add Website URL.
+		.unwrap_or_default();
+
 	let ip_addr: String = req.connection_info().remote_addr().map_or(String::new(), |c| c.to_string());
 
 	// TODO: Properly stream.
@@ -170,6 +184,7 @@ async fn upload(req: HttpRequest, mut multipart: Multipart, service: UploadDataS
 	let mut image_content_type = None;
 	let mut image_data = None;
 	let mut uid = None;
+	let mut custom_file_type = None;
 
 	while let Some(field) = multipart.try_next().await? {
 		let disp = field.content_disposition().unwrap();
@@ -185,25 +200,21 @@ async fn upload(req: HttpRequest, mut multipart: Multipart, service: UploadDataS
 					uid.insert(get_uid(field).await?);
 				}
 
+				Some("type") => {
+					custom_file_type = get_file_type(field).await?;
+				}
+
 				_ => ()
 			}
 		}
 	}
 
+	// Gallery File Type
+	if is_gallery_upload {
+		custom_file_type.insert(UploadImageType::Alphabetical32);
+	}
+
 	// Process File
-
-	let uid = match uid {
-		Some(v) => v,
-		None => {
-			let base_url = config.read()?.get_base_url();
-
-			return Ok(
-				HttpResponse::NotAcceptable()
-					.append_header((header::LOCATION, base_url + "error?type=Missing+Unique+ID"))
-					.body("Missing Unique ID")
-				);
-		}
-	};
 
 	let image_content_type = match image_content_type {
 		Some(v) => v,
@@ -232,28 +243,49 @@ async fn upload(req: HttpRequest, mut multipart: Multipart, service: UploadDataS
 	};
 
 
-	let user = match find_user_by_id(uid, &get_users_collection()).await? {
-		Some(v) => v,
-		None => {
-			let base_url = config.read()?.get_base_url();
+	let user = match uid {
+		Some(user_id) => {
+			match find_user_by_id(user_id, &get_users_collection()).await? {
+				Some(v) => v,
+				None => {
+					let base_url = config.read()?.get_base_url();
 
-			return Ok(
-				HttpResponse::NotAcceptable()
-					.append_header((header::LOCATION, base_url + "error?type=Incorrect+Unique+ID"))
-					.body("Incorrect Unique ID")
-				);
+					return Ok(
+						HttpResponse::NotAcceptable()
+							.append_header((header::LOCATION, base_url + "error?type=Incorrect+Unique+ID"))
+							.body("Incorrect Unique ID")
+						);
+				}
+			}
+		}
+
+		None => {
+			match get_slim_user_identity(identity) {
+				Some(u) => u.upgrade().await?.unwrap(),
+				None => {
+					let base_url = config.read()?.get_base_url();
+					return Ok(HttpResponse::NotAcceptable()
+						.append_header((header::LOCATION, base_url + "error?type=Missing+Unique+ID"))
+						.body("Missing Unique ID")
+					);
+				}
+			}
 		}
 	};
 
-	let display_name = service.lock()?.process_files(user, file_data, image_content_type, ip_addr, &mut *words.lock()?).await?;
+	let slim_image = service.lock()?.process_files(user, custom_file_type, file_data, image_content_type, ip_addr, &mut *words.lock()?).await?;
 
-	let path = format!("https://i.thick.at/{}", display_name.as_filename());
+	if is_gallery_upload {
+		Ok(HttpResponse::Ok().json(slim_image))
+	} else {
+		let path = format!("https://i.thick.at/{}", slim_image.full_file_name());
 
-	Ok(
-		HttpResponse::Found()
-			.append_header((header::LOCATION, path.clone()))
-			.body(format!("302 Found. Redirecting to {}", path))
-	)
+		Ok(
+			HttpResponse::Found()
+				.append_header((header::LOCATION, path.clone()))
+				.body(format!("302 Found. Redirecting to {}", path))
+		)
+	}
 }
 
 
@@ -289,6 +321,24 @@ pub async fn get_uid(mut field: Field) -> Result<String> {
 	};
 
 	Ok(String::from_utf8_lossy(&bytes).to_string())
+}
+
+pub async fn get_file_type(mut field: Field) -> Result<Option<UploadImageType>> {
+	let bytes = {
+		let mut value = Vec::new();
+
+		while let Some(bytes) = field.try_next().await? {
+			value.extend(bytes);
+
+			if value.len() > 100 {
+				return Err(InternalError::FileTypeTooLarge.into());
+			}
+		}
+
+		value
+	};
+
+	Ok(UploadImageType::from_num(String::from_utf8_lossy(&bytes).parse()?))
 }
 
 

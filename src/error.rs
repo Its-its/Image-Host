@@ -61,7 +61,10 @@ pub enum InternalError {
 	UploadSizeTooLarge,
 
 	#[error("The UID is Too Large")]
-	UidSizeTooLarge
+	UidSizeTooLarge,
+
+	#[error("The File Type is Too Large")]
+	FileTypeTooLarge
 }
 
 

@@ -8,7 +8,8 @@ use base64::encode as b64encode;
 use mongodb::bson::DateTime;
 
 use crate::config::ConfigServiceB2;
-use crate::db::model::{self, User};
+use crate::db::model::{self, SlimImage, User};
+use crate::upload::image::UploadImageType;
 use crate::{Filename, WordManager, db};
 use crate::error::{InternalError, Result};
 
@@ -66,14 +67,18 @@ impl Service {
 		})
 	}
 
-	pub async fn process_files(&mut self, user: User, file_data: Vec<u8>, content_type: String, ip_addr: String, words: &mut WordManager) -> Result<Filename> {
+	pub async fn process_files(&mut self, user: User, file_type: Option<UploadImageType>, file_data: Vec<u8>, content_type: String, ip_addr: String, words: &mut WordManager) -> Result<SlimImage> {
 		if self.last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
 			self.auth = self.credentials.authorize().await?;
 		}
 
 		let collection = db::get_images_collection();
 
-		let file_name = words.get_next_filename_prefix_suffix(&collection).await?;
+		let file_name = if let Some(upload_type) = file_type {
+			upload_type.get_link_name(words, &collection).await?
+		} else {
+			user.data.upload_type.get_link_name(words, &collection).await?
+		};
 
 		let file_name = file_name.set_format(content_type);
 
@@ -126,7 +131,7 @@ impl Service {
 
 		new_image.upload(&collection).await?;
 
-		Ok(file_name)
+		Ok(new_image.into())
 	}
 
 	pub async fn hide_file(&mut self, file_name: Filename) -> Result<()> {
