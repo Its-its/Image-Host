@@ -130,19 +130,32 @@ pub struct WordManager {
 
 
 impl WordManager {
-	pub async fn get_next_filename_prefix_suffix(&mut self, collection: &ImagesCollection) -> Result<Filename> {
+	pub async fn get_next_filename_prefix_suffix(
+		&mut self,
+		collection: &ImagesCollection
+	) -> Result<Filename> {
 		self.loop_and_check_model_db(|rng| get_next_filename_unchecked(rng), collection).await
 	}
 
-	pub async fn get_next_filename_sized_8(&mut self, collection: &ImagesCollection) -> Result<Filename> {
+	pub async fn get_next_filename_sized_8(
+		&mut self,
+		collection: &ImagesCollection
+	) -> Result<Filename> {
 		self.loop_and_check_model_db(|rng| Filename::new(gen_sample_alphanumeric(8, rng)), collection).await
 	}
 
-	pub async fn get_next_filename_sized_32(&mut self, collection: &ImagesCollection) -> Result<Filename> {
+	pub async fn get_next_filename_sized_32(
+		&mut self,
+		collection: &ImagesCollection
+	) -> Result<Filename> {
 		self.loop_and_check_model_db(|rng| Filename::new(gen_sample_alphanumeric(32, rng)), collection).await
 	}
 
-	async fn loop_and_check_model_db(&mut self, func: impl Fn(&mut ThreadRng) -> Filename, collection: &ImagesCollection) -> Result<Filename> {
+	async fn loop_and_check_model_db(
+		&mut self,
+		func: impl Fn(&mut ThreadRng) -> Filename,
+		collection: &ImagesCollection
+	) -> Result<Filename> {
 		loop {
 			let file_name = func(&mut self.rng);
 

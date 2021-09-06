@@ -1,9 +1,10 @@
 use chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
-use mongodb::{Cursor, bson::{DateTime, doc, oid::ObjectId}, results::{DeleteResult, InsertOneResult, UpdateResult}};
+use mongodb::{Cursor, bson::{DateTime, Document, doc, oid::ObjectId}, results::{DeleteResult, InsertOneResult, UpdateResult}};
+use rand::prelude::ThreadRng;
 
-use crate::{Filename, error::Result, upload::image::UploadImageType};
+use crate::{Filename, error::Result, upload::image::UploadImageType, words};
 
-use super::{AuthCollection, ImagesCollection, UsersCollection, get_users_collection};
+use super::{AuthCollection, GalleryCollection, ImagesCollection, UsersCollection, get_users_collection};
 
 
 
@@ -289,23 +290,118 @@ pub struct Gallery {
 
 	pub user_id: ObjectId,
 
+	pub name: String,
+
 	pub title: Option<String>,
 
 	pub images: Vec<GalleryImage>,
 
-	pub uploaded_at: DateTime,
+	pub indexed: i64,
+
+	pub updated_at: DateTime,
 	pub created_at: DateTime,
 }
+
+impl Gallery {
+	pub fn add_image(&mut self, image: Image) {
+		self.images.push(GalleryImage {
+			id: image.id.unwrap(),
+			index: self.indexed,
+			description: None
+		});
+
+		self.indexed += 1;
+	}
+
+
+	pub async fn update(self, collection: &GalleryCollection) -> Result<UpdateResult> {
+		let mut doc = Document::new();
+
+		doc.insert("updated_at", DateTime::now());
+		doc.insert("images", self.images.iter().map(|v| mongodb::bson::to_bson(v).unwrap()).collect::<Vec<_>>());
+		if let Some(value) = self.title { doc.insert("title", value); }
+
+		Ok(collection.update_one(
+			doc! { "_id": self.id.unwrap() },
+			doc! {
+				"$set": doc
+			},
+			None
+		).await?)
+	}
+
+	pub async fn delete(self, collection: &GalleryCollection) -> Result<DeleteResult> {
+		Ok(collection.delete_one(
+			doc! { "_id": self.id.unwrap() },
+			None
+		).await?)
+	}
+}
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GalleryImage {
 	pub id: ObjectId,
+	pub index: i64,
 	pub description: Option<String>
 }
 
 
+pub async fn does_gallery_exist(name: &str, collection: &GalleryCollection) -> Result<bool> {
+	Ok(
+		collection
+		.find_one(
+			doc! {
+				"name": name
+			},
+			None
+		)
+		.await?
+		.is_some()
+	)
+}
+
+pub async fn gallery_count(id: &ObjectId, collection: &GalleryCollection) -> Result<u64> {
+	Ok(
+		collection
+		.count_documents(
+			doc! {
+				"user_id": id
+			},
+			None
+		)
+		.await?
+	)
+}
+
+pub async fn create_empty_gallery(user_id: ObjectId, rng: &mut ThreadRng, collection: &GalleryCollection) -> Result<String> {
+	let mut name = words::gen_sample_alphanumeric(8, rng);
+
+	// TODO: While Loop
+	while does_gallery_exist(&name, collection).await? {
+		name = words::gen_sample_alphanumeric(8, rng);
+	}
 
 
+	let gallery = Gallery {
+		id: None,
+		user_id,
+		name,
+		title: None,
+		indexed: 0,
+		images: Vec::new(),
+		updated_at: DateTime::now(),
+		created_at: DateTime::now(),
+	};
+
+	collection.insert_one(&gallery, None).await?;
+
+	Ok(gallery.name)
+}
+
+pub async fn find_gallery_by_name(f_name: &str, collection: &GalleryCollection) -> Result<Option<Gallery>> {
+	Ok(collection.find_one(doc! { "name": f_name }, None).await?)
+}
 
 
 
@@ -384,8 +480,6 @@ pub async fn find_images_by_date<I: Into<UserId>>(f_id: I, f_year: u32, f_month:
 					"$lte": DateTime::from_millis(naive_nm.timestamp_millis())
 				}
 			};
-
-			println!("{:#?}", doc);
 
 			let found = collection.find(
 				doc,

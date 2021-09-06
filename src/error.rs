@@ -64,7 +64,19 @@ pub enum InternalError {
 	UidSizeTooLarge,
 
 	#[error("The File Type is Too Large")]
-	FileTypeTooLarge
+	FileTypeTooLarge,
+
+	#[error("Max Galleries")]
+	MaxGalleries,
+
+	#[error("Max Images in Gallery")]
+	MaxImagesInGallery,
+
+	#[error("Image Does Not Exist")]
+	ImageDoesNotExist,
+
+	#[error("Gallery Does Not Exist")]
+	GalleryDoesNotExist
 }
 
 

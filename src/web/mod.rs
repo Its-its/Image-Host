@@ -399,6 +399,11 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 
 			.service(gallery::home)
 			.service(gallery::item)
+			.service(gallery::gallery_new)
+			.service(gallery::gallery_arrange)
+			.service(gallery::gallery_delete)
+			.service(gallery::gallery_add_image)
+			.service(gallery::gallery_remove_image)
 
 			.service(get_image_info)
 			.service(update_image)
