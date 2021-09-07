@@ -29,23 +29,16 @@ async fn home(identity: Identity, hb: HandlebarsDataService<'_>, config: ConfigD
 
 
 #[get("/g/{id}")]
-async fn item(identity: Identity, path: web::Path<String>, hb: HandlebarsDataService<'_>, config: ConfigDataService) -> Result<HttpResponse> {
+async fn item(identity: Identity, _path: web::Path<String>, hb: HandlebarsDataService<'_>, config: ConfigDataService) -> Result<HttpResponse> {
 	let is_logged_in = identity.identity().is_some();
 
 	if is_logged_in {
-		let body = if path.as_str() == "new" {
-			hb.render(
-				"gallery/upload",
-				&json!({ "title": config.read()?.website.title })
-			)?
-		} else {
+		Ok(HttpResponse::Ok().body(
 			hb.render(
 				"gallery/item",
 				&json!({ "title": config.read()?.website.title })
 			)?
-		};
-
-		Ok(HttpResponse::Ok().body(body))
+		))
 	} else {
 		let location = config.read()?.get_base_url();
 
@@ -61,7 +54,7 @@ async fn gallery_new(identity: Identity, config: ConfigDataService, words: WordD
 
 		let gallery_count = model::gallery_count(&user.id, &collection).await?;
 
-		if gallery_count >= 100 {
+		if gallery_count < 100 {
 			let mut lock = words.lock()?;
 
 			let gallery_name = model::create_empty_gallery(user.id, &mut lock.rng, &collection).await?;
