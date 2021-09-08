@@ -2,7 +2,7 @@ use actix_identity::Identity;
 
 use actix_web::{HttpResponse, delete, get, http::header, post, put, web};
 
-use crate::{Result, db::{get_gallery_collection, get_images_collection, model}, error::InternalError};
+use crate::{Result, db::{get_gallery_collection, get_images_collection, model::{self, SlimImage}}, error::InternalError};
 
 use super::{ConfigDataService, HandlebarsDataService, WordDataService, get_slim_user_identity};
 
@@ -28,25 +28,6 @@ async fn home(identity: Identity, hb: HandlebarsDataService<'_>, config: ConfigD
 }
 
 
-#[get("/g/{id}")]
-async fn item(identity: Identity, _path: web::Path<String>, hb: HandlebarsDataService<'_>, config: ConfigDataService) -> Result<HttpResponse> {
-	let is_logged_in = identity.identity().is_some();
-
-	if is_logged_in {
-		Ok(HttpResponse::Ok().body(
-			hb.render(
-				"gallery/item",
-				&json!({ "title": config.read()?.website.title })
-			)?
-		))
-	} else {
-		let location = config.read()?.get_base_url();
-
-		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
-	}
-}
-
-
 #[post("/g/new")]
 async fn gallery_new(identity: Identity, config: ConfigDataService, words: WordDataService) -> Result<HttpResponse> {
 	if let Some(user) = get_slim_user_identity(identity) {
@@ -63,6 +44,25 @@ async fn gallery_new(identity: Identity, config: ConfigDataService, words: WordD
 		} else {
 			Err(InternalError::MaxGalleries.into())
 		}
+	} else {
+		let location = config.read()?.get_base_url();
+
+		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
+	}
+}
+
+
+#[get("/g/{id}")]
+async fn item(identity: Identity, _path: web::Path<String>, hb: HandlebarsDataService<'_>, config: ConfigDataService) -> Result<HttpResponse> {
+	let is_logged_in = identity.identity().is_some();
+
+	if is_logged_in {
+		Ok(HttpResponse::Ok().body(
+			hb.render(
+				"gallery/item",
+				&json!({ "title": config.read()?.website.title })
+			)?
+		))
 	} else {
 		let location = config.read()?.get_base_url();
 
@@ -127,6 +127,27 @@ async fn gallery_delete(gallery_id: web::Path<String>, identity: Identity, confi
 
 		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
 	}
+}
+
+
+#[get("/g/{id}/list")]
+async fn gallery_image_list(path: web::Path<String>) -> Result<HttpResponse> {
+	let gallery_id = path.into_inner();
+
+	let (gallery_collection, images_collection) = (get_gallery_collection(), get_images_collection());
+
+
+	let gallery = match model::find_gallery_by_name(&gallery_id, &gallery_collection).await? {
+		Some(v) => v,
+		None => return Err(InternalError::GalleryDoesNotExist.into())
+	};
+
+	let images = model::find_images_from_gallery(&gallery.images, &images_collection).await?
+		.into_iter()
+		.map(SlimImage::from)
+		.collect::<Vec<_>>();
+
+	Ok(HttpResponse::Ok().json(images))
 }
 
 

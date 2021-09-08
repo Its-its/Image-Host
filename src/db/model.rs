@@ -1,4 +1,5 @@
 use chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
+use futures::TryStreamExt;
 use mongodb::{Cursor, bson::{DateTime, Document, doc, oid::ObjectId}, results::{DeleteResult, InsertOneResult, UpdateResult}};
 use rand::prelude::ThreadRng;
 
@@ -401,6 +402,21 @@ pub async fn create_empty_gallery(user_id: ObjectId, rng: &mut ThreadRng, collec
 
 pub async fn find_gallery_by_name(f_name: &str, collection: &GalleryCollection) -> Result<Option<Gallery>> {
 	Ok(collection.find_one(doc! { "name": f_name }, None).await?)
+}
+
+pub async fn find_images_from_gallery(images: &[GalleryImage], collection: &ImagesCollection) -> Result<Vec<Image>> {
+	let image_ids: Vec<_> = images.iter().map(|v| &v.id).collect();
+
+	let cursor = collection.find(
+		doc! {
+			"name": {
+				"$all": image_ids
+			}
+		},
+		None
+	).await?;
+
+	Ok(cursor.try_collect().await?)
 }
 
 
