@@ -1,4 +1,4 @@
-const IS_NEW_GALLERY = window.location.pathname.toLowerCase().includes('/new');
+let IS_NEW_GALLERY = window.location.pathname.toLowerCase().includes('/new');
 
 
 const FILE_UPLOAD_PROMPTS = document.getElementsByClassName('file-upload-prompt');
@@ -9,6 +9,26 @@ const MEDIA_FILES = [];
 const REMOVING_FILE_IDS = {};
 
 
+
+if (!IS_NEW_GALLERY) {
+	(async function() {
+		let update_resp = await fetch(`${window.location.pathname}/list`, {
+			url: `${window.location.pathname}/list`,
+			method: 'GET'
+		});
+
+		let images = await update_resp.json();
+
+		images.forEach(file => {
+			let media_file = new MediaFile(file);
+			media_file.display();
+			MEDIA_FILES.push(media_file);
+		});
+	}())
+	.catch(console.log);
+}
+
+
 function updateEditingContainer() {
 	while (EDITING_CONTAINER.firstChild != null) EDITING_CONTAINER.firstChild.remove();
 
@@ -16,28 +36,70 @@ function updateEditingContainer() {
 	let removing_files_length = Object.keys(REMOVING_FILE_IDS).length;
 
 	if (uploading_files_length != 0 || removing_files_length != 0) {
+		let save_button;
+
 		if (IS_NEW_GALLERY) {
-			let save_button = document.createElement('button');
+			save_button = document.createElement('button');
 			save_button.className = 'button success';
 			save_button.innerText = 'Create';
 			EDITING_CONTAINER.appendChild(save_button);
+		} else {
+			save_button = document.createElement('button');
+			save_button.className = 'button success';
+			save_button.innerText = 'Save';
+			EDITING_CONTAINER.appendChild(save_button);
+		}
 
-			save_button.addEventListener('click', () => {
+		save_button.addEventListener('click', () => {
+			(async function() {
+				if (IS_NEW_GALLERY) {
+					// Create Gallery
+					let new_resp = await fetch('/g/new', {
+						url: '/g/new',
+						method: 'POST'
+					});
+
+					let gallery_id = await new_resp.text();
+
+					// Change URL.
+					window.history.replaceState(null, '', `/g/${gallery_id}`);
+				}
+
+
+				// Upload Files.
+
 				let files = MEDIA_FILES.filter(v => v.isNeedingUpload());
 
 				console.log(files);
 
 				for(let file of files) {
-					file.upload()
-					.then(console.log, console.log);
+					await file.upload();
 				}
-			});
-		} else {
-			let save_button = document.createElement('button');
-			save_button.className = 'button success';
-			save_button.innerText = 'Save';
-			EDITING_CONTAINER.appendChild(save_button);
-		}
+
+				console.log(files);
+
+				// Update Gallery
+				let update_resp = await fetch(`${window.location.pathname}`, {
+					url: `${window.location.pathname}`,
+					method: 'POST',
+					body: JSON.stringify({
+						add: files.map(v => v.media_info.name),
+						remove: Object.keys(REMOVING_FILE_IDS)
+					}),
+					headers: {
+						'Content-Type': 'application/json'
+					}
+				});
+
+				console.log(await update_resp.text());
+
+
+				// Refresh Sidebar
+				IS_NEW_GALLERY = false;
+				updateEditingContainer();
+			}())
+			.then(console.log, console.log);
+		});
 	}
 
 
@@ -159,7 +221,6 @@ class MediaFile {
 			'/upload',
 			{
 				method: 'POST',
-				url: '/upload',
 				body: formData
 			}
 		);

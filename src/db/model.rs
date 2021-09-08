@@ -318,6 +318,7 @@ impl Gallery {
 	pub async fn update(self, collection: &GalleryCollection) -> Result<UpdateResult> {
 		let mut doc = Document::new();
 
+		doc.insert("indexed", self.indexed);
 		doc.insert("updated_at", DateTime::now());
 		doc.insert("images", self.images.iter().map(|v| mongodb::bson::to_bson(v).unwrap()).collect::<Vec<_>>());
 		if let Some(value) = self.title { doc.insert("title", value); }
@@ -409,7 +410,7 @@ pub async fn find_images_from_gallery(images: &[GalleryImage], collection: &Imag
 
 	let cursor = collection.find(
 		doc! {
-			"name": {
+			"_id": {
 				"$all": image_ids
 			}
 		},
