@@ -219,7 +219,7 @@ async fn upload(
 	let image_content_type = match image_content_type {
 		Some(v) => v,
 		None => {
-			let base_url = config.read()?.get_base_url();
+			let base_url = config.read()?.website.http_base_host.clone();
 
 			return Ok(
 				HttpResponse::NotAcceptable()
@@ -232,7 +232,7 @@ async fn upload(
 	let file_data = match image_data {
 		Some(v) => v,
 		None => {
-			let base_url = config.read()?.get_base_url();
+			let base_url = config.read()?.website.http_base_host.clone();
 
 			return Ok(
 				HttpResponse::NotAcceptable()
@@ -248,7 +248,7 @@ async fn upload(
 			match find_user_by_id(user_id, &get_users_collection()).await? {
 				Some(v) => v,
 				None => {
-					let base_url = config.read()?.get_base_url();
+					let base_url = config.read()?.website.http_base_host.clone();
 
 					return Ok(
 						HttpResponse::NotAcceptable()
@@ -263,7 +263,8 @@ async fn upload(
 			match get_slim_user_identity(identity) {
 				Some(u) => u.upgrade().await?.unwrap(),
 				None => {
-					let base_url = config.read()?.get_base_url();
+					let base_url = config.read()?.website.http_base_host.clone();
+
 					return Ok(HttpResponse::NotAcceptable()
 						.append_header((header::LOCATION, base_url + "error?type=Missing+Unique+ID"))
 						.body("Missing Unique ID")

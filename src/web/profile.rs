@@ -23,7 +23,7 @@ async fn profile(identity: Identity, hb: HandlebarsDataService<'_>, config: Conf
 
 		Ok(HttpResponse::Ok().body(body))
 	} else {
-		let location = config.read()?.get_base_url();
+		let location = config.read()?.website.http_base_host.clone();
 
 		Ok(HttpResponse::TemporaryRedirect().append_header((header::LOCATION, location)).finish())
 	}

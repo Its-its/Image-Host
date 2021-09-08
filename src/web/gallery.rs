@@ -21,7 +21,7 @@ async fn home(identity: Identity, hb: HandlebarsDataService<'_>, config: ConfigD
 
 		Ok(HttpResponse::Ok().body(body))
 	} else {
-		let location = config.read()?.get_base_url();
+		let location = config.read()?.website.http_base_host.clone();
 
 		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
 	}
@@ -45,7 +45,7 @@ async fn gallery_new(identity: Identity, config: ConfigDataService, words: WordD
 			Err(InternalError::MaxGalleries.into())
 		}
 	} else {
-		let location = config.read()?.get_base_url();
+		let location = config.read()?.website.http_base_host.clone();
 
 		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
 	}
@@ -57,14 +57,20 @@ async fn item(identity: Identity, _path: web::Path<String>, hb: HandlebarsDataSe
 	let is_logged_in = identity.identity().is_some();
 
 	if is_logged_in {
+		let config = config.read()?;
+
 		Ok(HttpResponse::Ok().body(
 			hb.render(
 				"gallery/item",
-				&json!({ "title": config.read()?.website.title })
+				&json!({
+					"title": config.website.title,
+					"direct_image_url": config.website.http_image_host,
+					"direct_icon_url": config.website.http_icon_host
+				})
 			)?
 		))
 	} else {
-		let location = config.read()?.get_base_url();
+		let location = config.read()?.website.http_base_host.clone();
 
 		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
 	}
@@ -151,7 +157,7 @@ async fn gallery_update(gallery_id: web::Path<String>, update: web::Json<Gallery
 
 		Ok(HttpResponse::Ok().finish())
 	} else {
-		let location = config.read()?.get_base_url();
+		let location = config.read()?.website.http_base_host.clone();
 
 		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
 	}
@@ -176,7 +182,7 @@ async fn gallery_delete(gallery_id: web::Path<String>, identity: Identity, confi
 
 		Ok(HttpResponse::Ok().finish())
 	} else {
-		let location = config.read()?.get_base_url();
+		let location = config.read()?.website.http_base_host.clone();
 
 		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
 	}

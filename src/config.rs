@@ -97,11 +97,6 @@ pub struct ConfigInner {
 	pub services: ConfigServices
 }
 
-impl ConfigInner {
-	pub fn get_base_url(&self) -> String {
-		format!("{}://{}/", self.website.url_protocol, self.website.base_url)
-	}
-}
 
 impl Default for ConfigInner {
 	fn default() -> Self {
@@ -139,6 +134,9 @@ pub struct ConfigWebsite {
 	pub port: usize,
 	pub url_protocol: String,
 	pub base_url: String,
+	pub http_base_host: String,
+	pub http_image_host: String,
+	pub http_icon_host: String
 }
 
 impl Default for ConfigWebsite {
@@ -150,6 +148,10 @@ impl Default for ConfigWebsite {
 
 			url_protocol: "https".into(),
 			base_url: "127.0.0.1".into(),
+
+			http_base_host: "http://local.host".into(),
+			http_image_host: "http://i.local.host".into(),
+			http_icon_host: "http://icon.local.host".into(),
 		}
 	}
 }
@@ -211,11 +213,16 @@ pub struct ConfigServiceB2 {
 
 	pub image_sub_directory: String,
 	pub icon_sub_directory: String,
+
+	pub public_url: String
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ConfigServiceFileSystem {
 	pub enabled: bool,
 
-	pub upload_directory: String
+	pub upload_directory: String,
+
+	pub image_sub_directory: String,
+	pub icon_sub_directory: String,
 }

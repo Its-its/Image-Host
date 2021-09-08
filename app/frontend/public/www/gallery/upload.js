@@ -165,7 +165,7 @@ class MediaFile {
 		this.container.appendChild(image_cont);
 
 		let img = document.createElement('img');
-		img.src = this.is_data ? this.file_data : `//i.thick.at/i${this.media_info.name}.png`;
+		img.src = this.is_data ? this.file_data : `${window.DIRECT_IMAGE_URL}i${this.media_info.name}.png`;
 		image_cont.appendChild(img);
 
 
@@ -205,7 +205,7 @@ class MediaFile {
 		});
 
 		let img = document.createElement('img');
-		img.src = this.is_data ? this.file_data : `//i.thick.at/${this.media_info.name}.${this.media_info.file_type}`;
+		img.src = this.is_data ? this.file_data : `${window.DIRECT_IMAGE_URL}${this.media_info.name}.${this.media_info.file_type}`;
 		image_cont.appendChild(img);
 	}
 
@@ -254,28 +254,6 @@ for (const element of FILE_UPLOAD_PROMPTS) {
 		updateEditingContainer();
 	});
 }
-
-// [
-// 	{
-// 		"name": "AccompanyingZorse777",
-// 		"file_type": "jpeg",
-// 		"file_size": 27422,
-// 		"is_edited": false,
-// 		"is_favorite": false,
-// 		"view_count": 0,
-// 		"upload_date": "2021-08-26T04:03:28.548Z"
-// 	},
-// 	{
-// 		"name": "DeificDjangoDjango019",
-// 		"file_type": "png",
-// 		"file_size": 27422,
-// 		"is_edited": false,
-// 		"is_favorite": false,
-// 		"view_count": 0,
-// 		"upload_date": "2021-08-26T04:09:36.498Z"
-// 	}
-// ].forEach(displayImage);
-
 
 
 // Drag and Drop Popup
