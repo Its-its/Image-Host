@@ -149,9 +149,9 @@ impl Default for ConfigWebsite {
 			url_protocol: "https".into(),
 			base_url: "127.0.0.1".into(),
 
-			http_base_host: "http://local.host".into(),
-			http_image_host: "http://i.local.host".into(),
-			http_icon_host: "http://icon.local.host".into(),
+			http_base_host: "local.host".into(),
+			http_image_host: "i.local.host".into(),
+			http_icon_host: "icon.local.host".into(),
 		}
 	}
 }

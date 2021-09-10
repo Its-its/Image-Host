@@ -30,6 +30,11 @@ async fn main() -> Result<()> {
 
 	let config = ConfigHelper::<ConfigInner>::create_and_load("./app/config.json").await?;
 
+	if config.services.b2.enabled && !config.services.b2.public_url.ends_with('/') {
+		panic!(r#"Please end the b2 "public_url" with a "/""#);
+	}
+
+
 	std::mem::forget(db::create_mongo_connection(&config.database).await?);
 
 

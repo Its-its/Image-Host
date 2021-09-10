@@ -165,7 +165,7 @@ class MediaFile {
 		this.container.appendChild(image_cont);
 
 		let img = document.createElement('img');
-		img.src = this.is_data ? this.file_data : `${window.DIRECT_IMAGE_URL}i${this.media_info.name}.png`;
+		img.src = this.is_data ? this.file_data : `${window.DIRECT_IMAGE_URL}/i${this.media_info.name}.png`;
 		image_cont.appendChild(img);
 
 
@@ -205,7 +205,7 @@ class MediaFile {
 		});
 
 		let img = document.createElement('img');
-		img.src = this.is_data ? this.file_data : `${window.DIRECT_IMAGE_URL}${this.media_info.name}.${this.media_info.file_type}`;
+		img.src = this.is_data ? this.file_data : `${window.DIRECT_IMAGE_URL}/${this.media_info.name}.${this.media_info.file_type}`;
 		image_cont.appendChild(img);
 	}
 

@@ -53,27 +53,19 @@ async fn gallery_new(identity: Identity, config: ConfigDataService, words: WordD
 
 
 #[get("/g/{id}")]
-async fn item(identity: Identity, _path: web::Path<String>, hb: HandlebarsDataService<'_>, config: ConfigDataService) -> Result<HttpResponse> {
-	let is_logged_in = identity.identity().is_some();
+async fn item(hb: HandlebarsDataService<'_>, config: ConfigDataService) -> Result<HttpResponse> {
+	let config = config.read()?;
 
-	if is_logged_in {
-		let config = config.read()?;
-
-		Ok(HttpResponse::Ok().body(
-			hb.render(
-				"gallery/item",
-				&json!({
-					"title": config.website.title,
-					"direct_image_url": config.website.http_image_host,
-					"direct_icon_url": config.website.http_icon_host
-				})
-			)?
-		))
-	} else {
-		let location = config.read()?.website.http_base_host.clone();
-
-		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
-	}
+	Ok(HttpResponse::Ok().body(
+		hb.render(
+			"gallery/item",
+			&json!({
+				"title": config.website.title,
+				"direct_image_url": format!("{}://{}", config.website.url_protocol, config.website.http_image_host),
+				"direct_icon_url": format!("{}://{}", config.website.url_protocol, config.website.http_icon_host)
+			})
+		)?
+	))
 }
 
 

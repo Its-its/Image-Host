@@ -2,6 +2,7 @@ use std::sync::RwLock;
 use std::{convert::TryInto, sync::Mutex};
 
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
+use actix_web::guard;
 use actix_web::web::Data;
 use futures::TryStreamExt;
 
@@ -23,6 +24,7 @@ use crate::{Result, WordManager, db::{get_images_collection, model}, error::Inte
 
 mod gallery;
 mod profile;
+mod media;
 
 
 // Services
@@ -367,9 +369,20 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 
 	HttpServer::new(move || {
 		let config = config.clone();
-		let session_key = config.read().unwrap().session_secret.clone();
+		let read = config.read().unwrap();
 
-		App::new()
+		let session_key = read.session_secret.clone();
+
+		let base_url_with_www = header::HeaderValue::from_str(&format!("www.{}", read.website.http_base_host)).unwrap();
+		let base_url_non_www = header::HeaderValue::from_str(&read.website.http_base_host).unwrap();
+		let base_url_non_www_2 = base_url_non_www.clone(); // TODO: Remove.
+
+		let image_url = read.website.http_image_host.clone();
+		let icon_url = read.website.http_icon_host.clone();
+
+		drop(read);
+
+		let app = App::new()
 			// enable logger
 			.wrap(Logger::default())
 
@@ -385,34 +398,70 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 			.app_data(Data::new(JsonConfig::default().limit(4096)))
 
 			.app_data(service.clone())
-			.app_data(config)
-			.app_data(handlebars_ref.clone())
+			.app_data(config.clone())
+			.app_data(handlebars_ref.clone());
 
-			.service(upload)
+			let app = media::create_services(
+				app,
+				image_url,
+				icon_url,
+				config
+			);
 
-			.service(index)
-			.service(logout)
+			// Redirect off www
+			app.service(
+				web::scope("")
+				.guard(guard::fn_guard(
+					move |req| {
+						(|| -> Option<bool> {
+							let host = req.headers().get(header::HOST)?;
+							Some(host == base_url_with_www)
+						})()
+						.unwrap_or_default()
+					}
+				))
+				.route("", web::to(move || HttpResponse::PermanentRedirect().append_header((header::LOCATION, &base_url_non_www_2)).finish()))
+			)
 
-			.service(profile::profile)
-			.service(profile::update_settings)
-			.service(profile::get_images)
-			.service(profile::get_settings)
+			// Base Virtual Host
+			.service(
+				web::scope("")
+				.guard(guard::fn_guard(
+					move |req| {
+						(|| -> Option<bool> {
+							let host = req.headers().get(header::HOST)?;
+							Some(host == base_url_non_www)
+						})()
+						.unwrap_or_default()
+					}
+				))
 
-			.service(gallery::home)
-			.service(gallery::item)
-			.service(gallery::gallery_new)
-			.service(gallery::gallery_delete)
-			.service(gallery::gallery_update)
-			.service(gallery::gallery_image_list)
+				.service(upload)
 
-			.service(get_image_info)
-			.service(update_image)
-			.service(remove_image)
+				.service(index)
+				.service(logout)
 
-			.service(twitter::get_twitter_oauth)
-			.service(twitter::get_twitter_oauth_callback)
+				.service(profile::profile)
+				.service(profile::update_settings)
+				.service(profile::get_images)
+				.service(profile::get_settings)
 
-			.service(actix_files::Files::new("/", "./app/frontend/public/www"))
+				.service(gallery::home)
+				.service(gallery::item)
+				.service(gallery::gallery_new)
+				.service(gallery::gallery_delete)
+				.service(gallery::gallery_update)
+				.service(gallery::gallery_image_list)
+
+				.service(get_image_info)
+				.service(update_image)
+				.service(remove_image)
+
+				.service(twitter::get_twitter_oauth)
+				.service(twitter::get_twitter_oauth_callback)
+
+				.service(actix_files::Files::new("/", "./app/frontend/public/www"))
+			)
 	})
 	.bind(addr)?
 	.run()
