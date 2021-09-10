@@ -99,7 +99,11 @@ impl Service {
 
 		{ // Icon Upload
 			let mut path = self.icon_sub_directory.clone();
-			path.push(data.icon_name);
+			path.push(if self.icon_sub_directory == self.image_sub_directory {
+				format!("i{}", data.icon_name)
+			} else {
+				data.icon_name
+			});
 
 			upload_file_multi_try(path.to_str().unwrap(), data.icon_data, &self.auth, &self.bucket_id).await?;
 		}

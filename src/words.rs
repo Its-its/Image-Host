@@ -64,6 +64,10 @@ impl Filename {
 		&self.name
 	}
 
+	pub fn into_name(self) -> String {
+		self.name
+	}
+
 	pub fn is_accepted(&self) -> bool {
 		self.format.is_some() && self.format() != "error"
 	}

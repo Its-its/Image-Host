@@ -34,8 +34,8 @@ impl Service {
 
 		println!("[LOG]: User Uploaded Image UID: {}, IP: {}", user.id, ip_addr);
 		println!("[LOG]: \tImage original size: {} bytes", orig_file_size);
-		println!("[LOG]: \tImage Info: {:?} = {} bytes", data.image_name, data.image_data.len());
-		println!("[LOG]: \tIcon Info: {:?} = {} bytes", data.icon_name, data.icon_data.len());
+		println!("[LOG]: \tImage Info: \"{}\" = {} bytes", data.image_name, data.image_data.len());
+		println!("[LOG]: \tIcon Info: \"i{}\" = {} bytes", data.icon_name, data.icon_data.len());
 
 		Ok(SlimImage {
 			custom_name: None,

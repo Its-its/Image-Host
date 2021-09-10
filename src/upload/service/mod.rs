@@ -104,7 +104,7 @@ pub async fn image_compress_and_create_icon(file_name: &Filename, image_data: Ve
 		image_name: file_name.as_filename(),
 		image_data,
 
-		icon_name: format!("i{}.png", file_name.name()),
+		icon_name: format!("{}.png", file_name.name()),
 		icon_data,
 	})
 }
