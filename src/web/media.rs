@@ -33,9 +33,16 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Response = ServiceRespo
 				.route("/{name}", web::to(move |name: web::Path<String>, config: ConfigDataService| {
 					let url = {
 						let read = config.read().unwrap();
+
+						let input = if name.starts_with('i') {
+							&read.services.b2.icon_sub_directory
+						} else {
+							&read.services.b2.image_sub_directory
+						};
+
 						Url::from_str(&read.services.b2.public_url)
 							.unwrap()
-							.join(&format!("{}/{}", &read.services.b2.image_sub_directory, &name))
+							.join(&format!("{}/{}", input, &name))
 							.unwrap()
 					};
 
@@ -60,7 +67,7 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Response = ServiceRespo
 						let mut path = PathBuf::new();
 						path.push(&read.services.filesystem.upload_directory);
 
-						if name.bytes().next() == Some(b'i') {
+						if name.starts_with('i') {
 							path.push(&read.services.filesystem.icon_sub_directory);
 						} else {
 							path.push(&read.services.filesystem.image_sub_directory);
