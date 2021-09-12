@@ -380,8 +380,6 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 		let image_url = read.website.http_image_host.clone();
 		let icon_url = read.website.http_icon_host.clone();
 
-		drop(read);
-
 		let app = App::new()
 			// enable logger
 			.wrap(Logger::default())
@@ -401,67 +399,66 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 			.app_data(config.clone())
 			.app_data(handlebars_ref.clone());
 
-			let app = media::create_services(
-				app,
-				image_url,
-				icon_url,
-				config
-			);
+		let app = media::create_services(
+			app,
+			image_url,
+			icon_url,
+			&*read
+		);
 
-			// Redirect off www
-			app.service(
-				web::scope("")
-				.guard(guard::fn_guard(
-					move |req| {
-						(|| -> Option<bool> {
-							let host = req.headers().get(header::HOST)?;
-							Some(host == base_url_with_www)
-						})()
-						.unwrap_or_default()
-					}
-				))
-				.route("", web::to(move || HttpResponse::PermanentRedirect().append_header((header::LOCATION, &base_url_non_www_2)).finish()))
-			)
+		// Redirect off www
+		app.service(
+			web::scope("")
+			.guard(guard::fn_guard(
+				move |req| {
+					(|| -> Option<bool> {
+						let host = req.headers().get(header::HOST)?;
+						Some(host == base_url_with_www)
+					})()
+					.unwrap_or_default()
+				}
+			))
+			.route("", web::to(move || HttpResponse::PermanentRedirect().append_header((header::LOCATION, &base_url_non_www_2)).finish()))
+		)
 
-			// Base Virtual Host
-			.service(
-				web::scope("")
-				.guard(guard::fn_guard(
-					move |req| {
-						(|| -> Option<bool> {
-							let host = req.headers().get(header::HOST)?;
-							Some(host == base_url_non_www)
-						})()
-						.unwrap_or_default()
-					}
-				))
+		// Base Virtual Host
+		.service({
+			let scope = web::scope("")
+			.guard(guard::fn_guard(
+				move |req| {
+					(|| -> Option<bool> {
+						let host = req.headers().get(header::HOST)?;
+						Some(host == base_url_non_www)
+					})()
+					.unwrap_or_default()
+				}
+			))
 
-				.service(upload)
+			.service(upload)
 
-				.service(index)
-				.service(logout)
+			.service(index)
+			.service(logout)
 
-				.service(profile::profile)
-				.service(profile::update_settings)
-				.service(profile::get_images)
-				.service(profile::get_settings)
+			.service(profile::profile)
+			.service(profile::update_settings)
+			.service(profile::get_images)
+			.service(profile::get_settings)
 
-				.service(gallery::home)
-				.service(gallery::item)
-				.service(gallery::gallery_new)
-				.service(gallery::gallery_delete)
-				.service(gallery::gallery_update)
-				.service(gallery::gallery_image_list)
+			.service(gallery::home)
+			.service(gallery::item)
+			.service(gallery::gallery_new)
+			.service(gallery::gallery_delete)
+			.service(gallery::gallery_update)
+			.service(gallery::gallery_image_list)
 
-				.service(get_image_info)
-				.service(update_image)
-				.service(remove_image)
+			.service(get_image_info)
+			.service(update_image)
+			.service(remove_image);
 
-				.service(twitter::get_twitter_oauth)
-				.service(twitter::get_twitter_oauth_callback)
-
-				.service(actix_files::Files::new("/", "./app/frontend/public/www"))
-			)
+			twitter::register(scope, &*read)
+			.service(actix_files::Files::new("/", "./app/frontend/public/www"))
+			}
+		)
 	})
 	.bind(addr)?
 	.run()

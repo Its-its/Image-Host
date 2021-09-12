@@ -6,11 +6,18 @@ use actix_service::ServiceFactory;
 use actix_web::{App, HttpRequest, HttpResponse, dev::{ServiceRequest, ServiceResponse}, guard, web};
 use reqwest::Url;
 
+use crate::config::Config;
+
 use super::ConfigDataService;
 
 
 // If both urls are the same then icons use LOWERCASE 'i' to differentiate it from its' original.
-pub fn create_services<T: ServiceFactory<ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error, InitError = (), Config = ()>, B: MessageBody>(app: App<T, B>, image_url: String, icon_url: String, config: ConfigDataService) -> App<T, B> {
+pub fn create_services<T: ServiceFactory<ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error, InitError = (), Config = ()>, B: MessageBody>(
+	app: App<T, B>,
+	image_url: String,
+	icon_url: String,
+	read: &Config
+) -> App<T, B> {
 	let image_url_header = header::HeaderValue::from_str(&image_url).unwrap();
 
 	let image_factory = web::scope("")
@@ -23,8 +30,6 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Response = ServiceRespo
 				.unwrap_or_default()
 			}
 		));
-
-	let read = config.read().unwrap();
 
 	if image_url == icon_url {
 		if read.services.b2.enabled {

@@ -1,10 +1,11 @@
 use actix_identity::Identity;
-use actix_web::web;
-use actix_web::{HttpResponse, http::header, get};
+use actix_web::{Scope, web};
+use actix_web::{HttpResponse, http::header};
 use mongodb::bson::doc;
 // TODO: Remove.
 use twapi::{Twapi, oauth1::request_token};
 
+use crate::config::Config;
 use crate::db::{CollectionType, get_auth_collection, get_collection, get_users_collection};
 use crate::db::model::{NewUser, UserData, UserTwitter, create_auth_verify, find_and_remove_auth_verify};
 use crate::upload::image::UploadImageType;
@@ -12,7 +13,21 @@ use crate::web::ConfigDataService;
 use crate::words::gen_uuid;
 use crate::Result;
 
-#[get("/auth/twitter")]
+
+
+pub fn register(scope: Scope, config: &Config) -> Scope {
+	if config.passport.twitter.enabled {
+		scope
+			.route(&config.passport.twitter.auth_path, web::get().to(get_twitter_oauth))
+			.route(&config.passport.twitter.callback_path, web::get().to(get_twitter_oauth_callback))
+	} else {
+		scope
+	}
+}
+
+
+
+
 pub async fn get_twitter_oauth(identity: Identity, config: ConfigDataService) -> Result<HttpResponse> {
 	if identity.identity().is_some() {
 		return Ok(HttpResponse::Found().append_header((header::LOCATION, "/")).finish())
@@ -34,6 +49,8 @@ pub async fn get_twitter_oauth(identity: Identity, config: ConfigDataService) ->
 }
 
 
+
+
 #[derive(Serialize, Deserialize)]
 pub struct QueryCallback {
 	pub oauth_token: String,
@@ -41,7 +58,6 @@ pub struct QueryCallback {
 }
 
 
-#[get("/auth/twitter/callback")]
 pub async fn get_twitter_oauth_callback(query: web::Query<QueryCallback>, identity: Identity, config: ConfigDataService) -> Result<HttpResponse> {
 	if identity.identity().is_some() {
 		return Ok(HttpResponse::Found().append_header((header::LOCATION, "/")).finish())

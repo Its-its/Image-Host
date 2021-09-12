@@ -173,6 +173,8 @@ pub struct ConfigPassportGoogle {
 
 	pub client_id: String,
 	pub client_secret: String,
+
+	pub auth_path: String,
 	pub callback_path: String
 }
 
@@ -183,6 +185,8 @@ pub struct ConfigPassportTwitter {
 
 	pub consumer_key: String,
 	pub consumer_secret: String,
+
+	pub auth_path: String,
 	pub callback_path: String
 }
 
