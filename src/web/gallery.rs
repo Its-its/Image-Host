@@ -61,6 +61,7 @@ async fn item(hb: HandlebarsDataService<'_>, config: ConfigDataService) -> Resul
 			"gallery/item",
 			&json!({
 				"title": config.website.title,
+				// TODO
 				"direct_image_url": format!("{}://{}", config.website.url_protocol, config.website.http_image_host),
 				"direct_icon_url": format!("{}://{}", config.website.url_protocol, config.website.http_icon_host)
 			})

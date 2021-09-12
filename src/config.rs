@@ -173,7 +173,7 @@ pub struct ConfigPassportGoogle {
 
 	pub client_id: String,
 	pub client_secret: String,
-	pub callback_url: String
+	pub callback_path: String
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -183,7 +183,7 @@ pub struct ConfigPassportTwitter {
 
 	pub consumer_key: String,
 	pub consumer_secret: String,
-	pub callback_url: String
+	pub callback_path: String
 }
 
 

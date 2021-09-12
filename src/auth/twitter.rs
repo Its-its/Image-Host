@@ -23,8 +23,9 @@ pub async fn get_twitter_oauth(identity: Identity, config: ConfigDataService) ->
 	let (oauth_token, oauth_token_secret, url) = request_token(
 		&config.passport.twitter.consumer_key,
 		&config.passport.twitter.consumer_secret,
-			&config.passport.twitter.callback_url,
-			None
+		// TODO
+		&format!("{}://{}{}", &config.website.url_protocol, &config.website.http_base_host, &config.passport.twitter.callback_path),
+		None
 	).await.unwrap();
 
 	create_auth_verify(oauth_token, oauth_token_secret, &get_auth_collection()).await?;
