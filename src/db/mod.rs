@@ -24,7 +24,7 @@ lazy_static! {
 pub async fn create_mongo_connection(config: &ConfigDatabase) -> Result<Client> {
 	let client = Client::with_uri_str(&config.url).await?;
 
-	DATABASE.write().unwrap().insert(client.database(&config.database));
+	*DATABASE.write().unwrap() = Some(client.database(&config.database));
 
 	Ok(client)
 }

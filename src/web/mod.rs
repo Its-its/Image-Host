@@ -194,12 +194,12 @@ async fn upload(
 		if disp.is_form_data() {
 			match disp.get_name() {
 				Some("image") => {
-					image_content_type.insert(field.content_type().to_string());
-					image_data.insert(get_file(field).await?);
+					image_content_type = Some(field.content_type().to_string());
+					image_data = Some(get_file(field).await?);
 				}
 
 				Some("uid") => {
-					uid.insert(get_uid(field).await?);
+					uid = Some(get_uid(field).await?);
 				}
 
 				Some("type") => {
@@ -213,7 +213,7 @@ async fn upload(
 
 	// Gallery File Type
 	if is_gallery_upload {
-		custom_file_type.insert(UploadImageType::Alphabetical32);
+		custom_file_type = Some(UploadImageType::Alphabetical32);
 	}
 
 	// Process File
