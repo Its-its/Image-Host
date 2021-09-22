@@ -44,7 +44,10 @@ pub enum Error {
 	Render(RenderError),
 
 	#[error("Backblaze Error: {0}")]
-	B2(crate::upload::service::b2::JsonErrorStruct)
+	B2(crate::upload::service::b2::JsonErrorStruct),
+
+	#[error("PNG Optimize Error: {0}")]
+	Oxipng(oxipng::PngError)
 }
 
 
@@ -92,6 +95,12 @@ impl From<Error> for actix_web::body::Body {
 impl From<InternalError> for Error {
 	fn from(value: InternalError) -> Self {
 		Self::Internal(value)
+	}
+}
+
+impl From<oxipng::PngError> for Error {
+	fn from(value: oxipng::PngError) -> Self {
+		Self::Oxipng(value)
 	}
 }
 

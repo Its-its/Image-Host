@@ -73,14 +73,17 @@ impl Filename {
 	}
 
 	pub fn format(&self) -> &str {
-		let format: Option<Mime> = self.format.as_ref().and_then(|i| i.parse().ok());
-
-		match format.as_ref().map(|f| f.subtype()) {
+		match self.mime_format().as_ref().map(|f| f.subtype()) {
 			Some(GIF) => "gif",
 			Some(PNG) => "png",
 			Some(JPEG) => "jpeg",
 			_ => "error"
 		}
+	}
+
+	pub fn mime_format(&self) -> Option<Mime> {
+		self.format.as_ref()
+			.and_then(|i| i.parse().ok())
 	}
 
 	pub fn set_format(mut self, format: String) -> Self {

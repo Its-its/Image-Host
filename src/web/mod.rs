@@ -57,9 +57,9 @@ async fn index(identity: Identity, hb: HandlebarsDataService<'_>, config: Config
 
 
 #[get("/logout")]
-async fn logout(identity: Identity, _hb: HandlebarsDataService<'_>) -> HttpResponse {
+async fn logout(identity: Identity, config: ConfigDataService) -> Result<HttpResponse> {
 	identity.forget();
-	HttpResponse::Ok().insert_header((header::LOCATION, "https://thick.at")).finish()
+	Ok(HttpResponse::Ok().insert_header((header::LOCATION, config.read()?.website.base_host_with_proto())).finish())
 }
 
 
@@ -281,7 +281,7 @@ async fn upload(
 	if is_gallery_upload {
 		Ok(HttpResponse::Ok().json(slim_image))
 	} else {
-		let path = format!("https://i.thick.at/{}", slim_image.full_file_name());
+		let path = format!("{}/{}", config.read()?.website.image_host_with_proto(), slim_image.full_file_name());
 
 		Ok(
 			HttpResponse::Found()

@@ -90,11 +90,21 @@ pub async fn image_compress_and_create_icon(file_name: &Filename, image_data: Ve
 	let mut icon_data = Vec::new();
 	icon.write_to(&mut icon_data, ImageFormat::Png)?;
 
-	let mut image_data_new = Vec::new();
-	image.write_to(&mut image_data_new, ImageFormat::from_extension(file_name.format()).unwrap())?;
+	let image_data_new = if file_name.mime_format() == Some(mime::IMAGE_PNG) {
+		drop(image);
+
+		oxipng::optimize_from_memory(&image_data, &oxipng::Options {
+			strip: oxipng::Headers::Safe,
+			.. Default::default()
+		})?
+	} else {
+		let mut w = Vec::new();
+		image.write_to(&mut w, ImageFormat::from_extension(file_name.format()).unwrap())?;
+		w
+	};
 
 	// Pick smallest image data size.
-	let image_data = if image_data < image_data_new {
+	let image_data = if image_data.len() < image_data_new.len() {
 		image_data
 	} else {
 		image_data_new

@@ -139,6 +139,20 @@ pub struct ConfigWebsite {
 	pub http_icon_host: String
 }
 
+impl ConfigWebsite {
+	pub fn base_host_with_proto(&self) -> String {
+		format!("{}://{}", self.url_protocol, self.http_base_host)
+	}
+
+	pub fn image_host_with_proto(&self) -> String {
+		format!("{}://{}", self.url_protocol, self.http_image_host)
+	}
+
+	pub fn icon_host_with_proto(&self) -> String {
+		format!("{}://{}", self.url_protocol, self.http_icon_host)
+	}
+}
+
 impl Default for ConfigWebsite {
 	fn default() -> Self {
 		Self {
