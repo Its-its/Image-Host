@@ -154,7 +154,9 @@ pub struct ImageViews {
 
 
 
-
+fn is_false(value: &bool) -> bool {
+	!value
+}
 
 // IMAGES
 
@@ -175,14 +177,19 @@ pub struct Image {
 	pub tags: Option<Vec<String>>,
 
 	#[serde(default)]
+	#[serde(skip_serializing_if = "is_false")]
 	pub is_edited: bool,
 
+	#[serde(default)]
+	#[serde(skip_serializing_if = "is_false")]
 	pub is_favorite: bool,
 
 	pub view_count: i32,
 
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub deleted: Option<DateTime>,
 
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub uploader_id: Option<ObjectId>,
 
 	pub uploader: ImageUploader,
