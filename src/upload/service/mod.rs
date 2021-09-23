@@ -1,4 +1,6 @@
-use image::ImageFormat;
+use std::panic::catch_unwind;
+
+use image::{ColorType, ImageFormat};
 
 use crate::{Filename, Result, WordManager, config::{
 		ConfigServiceB2,
@@ -81,11 +83,8 @@ impl Service {
 
 
 pub async fn image_compress_and_create_icon(file_name: &Filename, image_data: Vec<u8>) -> Result<FileData> {
-	// TODO: Compress. https://github.com/mozilla/mozjpeg
-
 	let image = image::load_from_memory(&image_data)?;
 	let icon = image.thumbnail_exact(128, 128);
-	//Node.js uses: .resize(128, 128, FilterType::CatmullRom);
 
 	let mut icon_data = Vec::new();
 	icon.write_to(&mut icon_data, ImageFormat::Png)?;
@@ -97,7 +96,45 @@ pub async fn image_compress_and_create_icon(file_name: &Filename, image_data: Ve
 			strip: oxipng::Headers::Safe,
 			.. Default::default()
 		})?
+	} else if file_name.mime_format() == Some(mime::IMAGE_JPEG) && (image.color() == ColorType::Rgb8 || image.color() == ColorType::Rgb16) {
+		let res = catch_unwind(|| {
+			drop(image);
+
+			// Decode it.
+			let (width, height, pixels) = match mozjpeg::Decompress::new_mem(&image_data)?.image()? {
+				mozjpeg::Format::RGB(mut d) => (d.width(), d.height(), d.read_scanlines::<[u8; 3]>().unwrap()),
+				mozjpeg::Format::Gray(_) => unimplemented!(),
+				mozjpeg::Format::CMYK(_) => unimplemented!(),
+			};
+
+			// Re-encode it.
+			let mut comp = mozjpeg::Compress::new(mozjpeg::ColorSpace::JCS_RGB);
+			comp.set_mem_dest();
+			comp.set_size(width, height);
+			comp.set_quality(80.0);
+			// comp.set_scan_optimization_mode(mozjpeg::ScanMode::Auto);
+
+			comp.start_compress();
+
+			comp.write_scanlines(bytemuck::cast_slice(&pixels));
+
+			comp.finish_compress();
+
+			Result::Ok(comp.data_to_vec().unwrap())
+		});
+
+		match res {
+			Ok(v) => v?,
+			// TODO: Output Error.
+			Err(_e) => {
+				return Err(crate::error::InternalError::MozJpegError.into());
+			}
+		}
 	} else {
+		if file_name.mime_format() == Some(mime::IMAGE_JPEG) {
+			println!("Unknown JPEG Color: {:?}", image.color());
+		}
+
 		let mut w = Vec::new();
 		image.write_to(&mut w, ImageFormat::from_extension(file_name.format()).unwrap())?;
 		w

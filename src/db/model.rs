@@ -168,7 +168,9 @@ pub struct Image {
 
 	pub name: String,
 	pub file_type: String,
-	pub file_size: i64,
+
+	pub size_original: i64,
+	pub size_compressed: i64,
 
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub custom_name: Option<String>,
@@ -251,7 +253,9 @@ pub struct SlimImage {
 
 	pub name: String,
 	pub file_type: String,
-	pub file_size: i64,
+
+	pub size_original: i64,
+	pub size_compressed: i64,
 
 	pub is_edited: bool,
 	pub is_favorite: bool,
@@ -274,7 +278,8 @@ impl From<Image> for SlimImage {
 
 			name: img.name,
 			file_type: img.file_type,
-			file_size: img.file_size,
+			size_original: img.size_original,
+			size_compressed: img.size_compressed,
 
 
 			is_edited: img.is_edited,

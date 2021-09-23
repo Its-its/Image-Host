@@ -79,7 +79,10 @@ pub enum InternalError {
 	ImageDoesNotExist,
 
 	#[error("Gallery Does Not Exist")]
-	GalleryDoesNotExist
+	GalleryDoesNotExist,
+
+	#[error("An Error Occured while trying to Optimize JPEG Image")]
+	MozJpegError
 }
 
 

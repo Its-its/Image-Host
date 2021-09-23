@@ -28,12 +28,15 @@ impl Service {
 			return Err(web_error::ErrorNotAcceptable("Invalid file format. Expected gif, png, or jpeg.").into());
 		}
 
-		let orig_file_size = file_data.len() as i64;
+		let size_original = file_data.len() as i64;
 
 		let data = image_compress_and_create_icon(&file_name, file_data).await?;
 
+		let size_compressed = data.image_data.len() as i64;
+
 		println!("[LOG]: User Uploaded Image UID: {}, IP: {}", user.id, ip_addr);
-		println!("[LOG]: \tImage original size: {} bytes", orig_file_size);
+		println!("[LOG]: \tImage original size: {} bytes", size_original);
+		println!("[LOG]: \tImage compressed size: {} bytes", size_compressed);
 		println!("[LOG]: \tImage Info: \"{}\" = {} bytes", data.image_name, data.image_data.len());
 		println!("[LOG]: \tIcon Info: \"i{}\" = {} bytes", data.icon_name, data.icon_data.len());
 
@@ -41,7 +44,8 @@ impl Service {
 			custom_name: None,
 			name: file_name.name().to_string(),
 			file_type: file_name.format().to_string(),
-			file_size: data.image_data.len() as i64,
+			size_original,
+			size_compressed,
 			is_edited: false,
 			is_favorite: false,
 			view_count: 0,
