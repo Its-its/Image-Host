@@ -2,12 +2,11 @@ use std::sync::RwLock;
 
 use mongodb::{Client, Collection, Database};
 
-use crate::{Result, config::ConfigDatabase};
+use crate::{config::ConfigDatabase, Result};
 
-use self::model::{Gallery, Image, ImageViews, User, AuthVerify};
+use self::model::{AuthVerify, Gallery, Image, ImageViews, User};
 
 pub mod model;
-
 
 pub type ImageViewsCollection = Collection<ImageViews>;
 pub type ImagesCollection = Collection<Image>;
@@ -15,11 +14,9 @@ pub type UsersCollection = Collection<User>;
 pub type GalleryCollection = Collection<Gallery>;
 pub type AuthCollection = Collection<AuthVerify>;
 
-
 lazy_static! {
 	static ref DATABASE: RwLock<Option<Database>> = RwLock::new(None);
 }
-
 
 pub async fn create_mongo_connection(config: &ConfigDatabase) -> Result<Client> {
 	let client = Client::with_uri_str(&config.url).await?;
@@ -28,7 +25,6 @@ pub async fn create_mongo_connection(config: &ConfigDatabase) -> Result<Client> 
 
 	Ok(client)
 }
-
 
 pub fn get_image_views_collection() -> ImageViewsCollection {
 	get_collection(CollectionType::ImageViews)
@@ -50,8 +46,16 @@ pub fn get_auth_collection() -> AuthCollection {
 	get_collection(CollectionType::Auths)
 }
 
-pub fn get_collection<T>(value: CollectionType) -> Collection<T> where T: serde::Serialize + serde::de::DeserializeOwned + Unpin + std::fmt::Debug, {
-	DATABASE.read().unwrap().as_ref().unwrap().collection(value.collection_name())
+pub fn get_collection<T>(value: CollectionType) -> Collection<T>
+where
+	T: serde::Serialize + serde::de::DeserializeOwned + Unpin + std::fmt::Debug,
+{
+	DATABASE
+		.read()
+		.unwrap()
+		.as_ref()
+		.unwrap()
+		.collection(value.collection_name())
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -60,7 +64,7 @@ pub enum CollectionType {
 	Images,
 	Users,
 	Gallery,
-	Auths
+	Auths,
 }
 
 impl CollectionType {
@@ -70,7 +74,7 @@ impl CollectionType {
 			Self::Images => "images",
 			Self::Users => "users",
 			Self::Gallery => "gallery",
-			Self::Auths => "auths"
+			Self::Auths => "auths",
 		}
 	}
 }

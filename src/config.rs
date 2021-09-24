@@ -1,24 +1,25 @@
-use std::{ops::{Deref, DerefMut}, path::PathBuf};
+use std::{
+	ops::{Deref, DerefMut},
+	path::PathBuf,
+};
 
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::Result;
 
-
 pub type Config = ConfigHelper<ConfigInner>;
-
 
 #[derive(Default)]
 pub struct ConfigHelper<C: DeserializeOwned + Serialize + Default> {
 	path: PathBuf,
-	config: C
+	config: C,
 }
 
 impl<C: DeserializeOwned + Serialize + Default> ConfigHelper<C> {
 	pub fn create_with_defaults<P: Into<PathBuf>>(path: P) -> Self {
 		Self {
 			path: path.into(),
-			config: C::default()
+			config: C::default(),
 		}
 	}
 
@@ -82,8 +83,6 @@ impl<C: DeserializeOwned + Serialize + Default> DerefMut for ConfigHelper<C> {
 	}
 }
 
-
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ConfigInner {
 	pub session_secret: String,
@@ -94,9 +93,8 @@ pub struct ConfigInner {
 	pub passport: ConfigPassport,
 
 	#[serde(default)]
-	pub services: ConfigServices
+	pub services: ConfigServices,
 }
-
 
 impl Default for ConfigInner {
 	fn default() -> Self {
@@ -107,7 +105,7 @@ impl Default for ConfigInner {
 
 			website: ConfigWebsite::default(),
 			passport: ConfigPassport::default(),
-			services: ConfigServices::default()
+			services: ConfigServices::default(),
 		}
 	}
 }
@@ -115,18 +113,17 @@ impl Default for ConfigInner {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ConfigDatabase {
 	pub url: String,
-	pub database: String
+	pub database: String,
 }
 
 impl Default for ConfigDatabase {
 	fn default() -> Self {
 		Self {
 			url: "mongodb://127.0.0.1:27017".into(),
-			database: "image_host".into()
+			database: "image_host".into(),
 		}
 	}
 }
-
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ConfigWebsite {
@@ -136,7 +133,7 @@ pub struct ConfigWebsite {
 	pub base_url: String,
 	pub http_base_host: String,
 	pub http_image_host: String,
-	pub http_icon_host: String
+	pub http_icon_host: String,
 }
 
 impl ConfigWebsite {
@@ -170,14 +167,12 @@ impl Default for ConfigWebsite {
 	}
 }
 
-
-
 // Passport
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ConfigPassport {
 	pub google: ConfigPassportGoogle,
-	pub twitter: ConfigPassportTwitter
+	pub twitter: ConfigPassportTwitter,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -189,7 +184,7 @@ pub struct ConfigPassportGoogle {
 	pub client_secret: String,
 
 	pub auth_path: String,
-	pub callback_path: String
+	pub callback_path: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -201,9 +196,8 @@ pub struct ConfigPassportTwitter {
 	pub consumer_secret: String,
 
 	pub auth_path: String,
-	pub callback_path: String
+	pub callback_path: String,
 }
-
 
 // Services
 
@@ -211,9 +205,8 @@ pub struct ConfigPassportTwitter {
 pub struct ConfigServices {
 	pub logging: ConfigServiceLogging,
 	pub b2: ConfigServiceB2,
-	pub filesystem: ConfigServiceFileSystem
+	pub filesystem: ConfigServiceFileSystem,
 }
-
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ConfigServiceLogging {
@@ -232,7 +225,7 @@ pub struct ConfigServiceB2 {
 	pub image_sub_directory: String,
 	pub icon_sub_directory: String,
 
-	pub public_url: String
+	pub public_url: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]

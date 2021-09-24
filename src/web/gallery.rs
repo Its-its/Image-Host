@@ -1,35 +1,48 @@
 use actix_identity::Identity;
 
-use actix_web::{HttpResponse, delete, get, http::header, post, web};
+use actix_web::{delete, get, http::header, post, web, HttpResponse};
 
-use crate::{Result, db::{get_gallery_collection, get_images_collection, model::{self, SlimImage}}, error::InternalError};
+use crate::{
+	db::{
+		get_gallery_collection, get_images_collection,
+		model::{self, SlimImage},
+	},
+	error::InternalError,
+	Result,
+};
 
-use super::{ConfigDataService, HandlebarsDataService, WordDataService, get_slim_user_identity};
-
-
-
+use super::{get_slim_user_identity, ConfigDataService, HandlebarsDataService, WordDataService};
 
 #[get("/gallery")]
-async fn home(identity: Identity, hb: HandlebarsDataService<'_>, config: ConfigDataService) -> Result<HttpResponse> {
+async fn home(
+	identity: Identity,
+	hb: HandlebarsDataService<'_>,
+	config: ConfigDataService,
+) -> Result<HttpResponse> {
 	let is_logged_in = identity.identity().is_some();
 
 	if is_logged_in {
 		let body = hb.render(
 			"gallery/home",
-			&json!({ "title": config.read()?.website.title })
+			&json!({ "title": config.read()?.website.title }),
 		)?;
 
 		Ok(HttpResponse::Ok().body(body))
 	} else {
 		let location = config.read()?.website.http_base_host.clone();
 
-		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
+		Ok(HttpResponse::Unauthorized()
+			.append_header((header::LOCATION, location))
+			.finish())
 	}
 }
 
-
 #[post("/g/new")]
-async fn gallery_new(identity: Identity, config: ConfigDataService, words: WordDataService) -> Result<HttpResponse> {
+async fn gallery_new(
+	identity: Identity,
+	config: ConfigDataService,
+	words: WordDataService,
+) -> Result<HttpResponse> {
 	if let Some(user) = get_slim_user_identity(identity) {
 		let collection = get_gallery_collection();
 
@@ -38,7 +51,8 @@ async fn gallery_new(identity: Identity, config: ConfigDataService, words: WordD
 		if gallery_count < 100 {
 			let mut lock = words.lock()?;
 
-			let gallery_name = model::create_empty_gallery(user.id, &mut lock.rng, &collection).await?;
+			let gallery_name =
+				model::create_empty_gallery(user.id, &mut lock.rng, &collection).await?;
 
 			Ok(HttpResponse::Ok().body(gallery_name))
 		} else {
@@ -47,28 +61,26 @@ async fn gallery_new(identity: Identity, config: ConfigDataService, words: WordD
 	} else {
 		let location = config.read()?.website.http_base_host.clone();
 
-		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
+		Ok(HttpResponse::Unauthorized()
+			.append_header((header::LOCATION, location))
+			.finish())
 	}
 }
-
 
 #[get("/g/{id}")]
 async fn item(hb: HandlebarsDataService<'_>, config: ConfigDataService) -> Result<HttpResponse> {
 	let config = config.read()?;
 
-	Ok(HttpResponse::Ok().body(
-		hb.render(
-			"gallery/item",
-			&json!({
-				"title": config.website.title,
-				// TODO
-				"direct_image_url": format!("{}://{}", config.website.url_protocol, config.website.http_image_host),
-				"direct_icon_url": format!("{}://{}", config.website.url_protocol, config.website.http_icon_host)
-			})
-		)?
-	))
+	Ok(HttpResponse::Ok().body(hb.render(
+		"gallery/item",
+		&json!({
+			"title": config.website.title,
+			// TODO
+			"direct_image_url": format!("{}://{}", config.website.url_protocol, config.website.http_image_host),
+			"direct_icon_url": format!("{}://{}", config.website.url_protocol, config.website.http_icon_host)
+		}),
+	)?))
 }
-
 
 #[derive(Serialize, Deserialize)]
 pub struct GalleryPost {
@@ -77,18 +89,25 @@ pub struct GalleryPost {
 	#[serde(default)]
 	add: Vec<String>,
 	#[serde(default)]
-	remove: Vec<String>
+	remove: Vec<String>,
 }
 
 #[post("/g/{id}")]
-async fn gallery_update(gallery_id: web::Path<String>, update: web::Json<GalleryPost>, identity: Identity, config: ConfigDataService) -> Result<HttpResponse> {
+async fn gallery_update(
+	gallery_id: web::Path<String>,
+	update: web::Json<GalleryPost>,
+	identity: Identity,
+	config: ConfigDataService,
+) -> Result<HttpResponse> {
 	if let Some(user) = get_slim_user_identity(identity) {
-		let (gallery_collection, images_collection) = (get_gallery_collection(), get_images_collection());
+		let (gallery_collection, images_collection) =
+			(get_gallery_collection(), get_images_collection());
 
-		let mut gallery = match model::find_gallery_by_name(&gallery_id, &gallery_collection).await? {
-			Some(v) => v,
-			None => return Err(InternalError::GalleryDoesNotExist.into())
-		};
+		let mut gallery =
+			match model::find_gallery_by_name(&gallery_id, &gallery_collection).await? {
+				Some(v) => v,
+				None => return Err(InternalError::GalleryDoesNotExist.into()),
+			};
 
 		if user.id != gallery.user_id {
 			return Ok(HttpResponse::Unauthorized().finish());
@@ -96,22 +115,24 @@ async fn gallery_update(gallery_id: web::Path<String>, update: web::Json<Gallery
 
 		let update = update.into_inner();
 
-
 		// Remove
 		{
 			for image_name in update.remove {
-				let image = match model::find_image_by_name(&image_name, &images_collection).await? {
+				let image = match model::find_image_by_name(&image_name, &images_collection).await?
+				{
 					Some(v) => v,
-					None => return Err(InternalError::ImageDoesNotExist.into())
+					None => return Err(InternalError::ImageDoesNotExist.into()),
 				};
 
-
-				if let Some(index) = gallery.images.iter().position(|v| &v.id == image.id.as_ref().unwrap()) {
+				if let Some(index) = gallery
+					.images
+					.iter()
+					.position(|v| &v.id == image.id.as_ref().unwrap())
+				{
 					gallery.images.remove(index);
 				}
 			}
 		}
-
 
 		// Arrange
 		{
@@ -127,44 +148,50 @@ async fn gallery_update(gallery_id: web::Path<String>, update: web::Json<Gallery
 			gallery.images.append(&mut images);
 		}
 
-
 		// Add
 		{
 			for image_name in update.add {
-				let image = match model::find_image_by_name(&image_name, &images_collection).await? {
+				let image = match model::find_image_by_name(&image_name, &images_collection).await?
+				{
 					Some(v) => v,
-					None => return Err(InternalError::ImageDoesNotExist.into())
+					None => return Err(InternalError::ImageDoesNotExist.into()),
 				};
 
 				// TODO: Error
-				if !gallery.images.iter().any(|v| &v.id == image.id.as_ref().unwrap()) {
+				if !gallery
+					.images
+					.iter()
+					.any(|v| &v.id == image.id.as_ref().unwrap())
+				{
 					gallery.add_image(image);
 				}
 			}
 		}
 
-
-
 		gallery.update(&gallery_collection).await?;
-
 
 		Ok(HttpResponse::Ok().finish())
 	} else {
 		let location = config.read()?.website.http_base_host.clone();
 
-		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
+		Ok(HttpResponse::Unauthorized()
+			.append_header((header::LOCATION, location))
+			.finish())
 	}
 }
 
-
 #[delete("/g/{id}")]
-async fn gallery_delete(gallery_id: web::Path<String>, identity: Identity, config: ConfigDataService) -> Result<HttpResponse> {
+async fn gallery_delete(
+	gallery_id: web::Path<String>,
+	identity: Identity,
+	config: ConfigDataService,
+) -> Result<HttpResponse> {
 	if let Some(user) = get_slim_user_identity(identity) {
 		let gallery_collection = get_gallery_collection();
 
 		let gallery = match model::find_gallery_by_name(&gallery_id, &gallery_collection).await? {
 			Some(v) => v,
-			None => return Err(InternalError::GalleryDoesNotExist.into())
+			None => return Err(InternalError::GalleryDoesNotExist.into()),
 		};
 
 		if user.id != gallery.user_id {
@@ -177,22 +204,24 @@ async fn gallery_delete(gallery_id: web::Path<String>, identity: Identity, confi
 	} else {
 		let location = config.read()?.website.http_base_host.clone();
 
-		Ok(HttpResponse::Unauthorized().append_header((header::LOCATION, location)).finish())
+		Ok(HttpResponse::Unauthorized()
+			.append_header((header::LOCATION, location))
+			.finish())
 	}
 }
 
-
 #[get("/g/{id}/list")]
 async fn gallery_image_list(gallery_id: web::Path<String>) -> Result<HttpResponse> {
-	let (gallery_collection, images_collection) = (get_gallery_collection(), get_images_collection());
-
+	let (gallery_collection, images_collection) =
+		(get_gallery_collection(), get_images_collection());
 
 	let gallery = match model::find_gallery_by_name(&gallery_id, &gallery_collection).await? {
 		Some(v) => v,
-		None => return Err(InternalError::GalleryDoesNotExist.into())
+		None => return Err(InternalError::GalleryDoesNotExist.into()),
 	};
 
-	let images = model::find_images_from_gallery(&gallery.images, &images_collection).await?
+	let images = model::find_images_from_gallery(&gallery.images, &images_collection)
+		.await?
 		.into_iter()
 		.map(SlimImage::from)
 		.collect::<Vec<_>>();

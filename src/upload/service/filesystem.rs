@@ -5,16 +5,15 @@ use mongodb::bson::DateTime;
 
 use crate::config::ConfigServiceFileSystem;
 use crate::db::model::{SlimImage, User};
-use crate::upload::image::UploadImageType;
-use crate::{Filename, WordManager, db};
 use crate::error::Result;
+use crate::upload::image::UploadImageType;
+use crate::{db, Filename, WordManager};
 
 use super::image_compress_and_create_icon;
 
-
 pub struct Service {
 	image_sub_directory: PathBuf,
-	icon_sub_directory: PathBuf
+	icon_sub_directory: PathBuf,
 }
 
 impl Service {
@@ -27,15 +26,25 @@ impl Service {
 
 		Ok(Self {
 			image_sub_directory,
-			icon_sub_directory
+			icon_sub_directory,
 		})
 	}
 
-	pub async fn process_files(&mut self, user: User, file_type: Option<UploadImageType>, file_data: Vec<u8>, content_type: String, words: &mut WordManager) -> Result<SlimImage> {
+	pub async fn process_files(
+		&mut self,
+		user: User,
+		file_type: Option<UploadImageType>,
+		file_data: Vec<u8>,
+		content_type: String,
+		words: &mut WordManager,
+	) -> Result<SlimImage> {
 		let same_dirs = self.image_sub_directory == self.icon_sub_directory;
 
 		// Directory check
-		if tokio::fs::metadata(&self.image_sub_directory).await.is_err() {
+		if tokio::fs::metadata(&self.image_sub_directory)
+			.await
+			.is_err()
+		{
 			tokio::fs::create_dir_all(&self.image_sub_directory).await?;
 		}
 
@@ -48,13 +57,19 @@ impl Service {
 		let file_name = if let Some(upload_type) = file_type {
 			upload_type.get_link_name(words, &collection).await?
 		} else {
-			user.data.upload_type.get_link_name(words, &collection).await?
+			user.data
+				.upload_type
+				.get_link_name(words, &collection)
+				.await?
 		};
 
 		let file_name = file_name.set_format(content_type);
 
 		if !file_name.is_accepted() {
-			return Err(web_error::ErrorNotAcceptable("Invalid file format. Expected gif, png, or jpeg.").into());
+			return Err(web_error::ErrorNotAcceptable(
+				"Invalid file format. Expected gif, png, or jpeg.",
+			)
+			.into());
 		}
 
 		let size_original = file_data.len() as i64;
@@ -62,7 +77,6 @@ impl Service {
 		let data = image_compress_and_create_icon(&file_name, file_data).await?;
 
 		let size_compressed = data.image_data.len() as i64;
-
 
 		{
 			let mut path = self.image_sub_directory.clone();
@@ -117,4 +131,3 @@ impl Service {
 		Ok(())
 	}
 }
-

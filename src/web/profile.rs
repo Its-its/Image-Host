@@ -1,16 +1,23 @@
 use actix_identity::Identity;
-use actix_web::{HttpResponse, get, http::header, post, web};
+use actix_web::{get, http::header, post, web, HttpResponse};
 use futures::TryStreamExt;
 use mongodb::bson::doc;
 
-use crate::{Result, db::{get_images_collection, get_users_collection, model}, upload::image::UploadImageType, web::get_slim_user_identity};
+use crate::{
+	db::{get_images_collection, get_users_collection, model},
+	upload::image::UploadImageType,
+	web::get_slim_user_identity,
+	Result,
+};
 
 use super::{ConfigDataService, HandlebarsDataService};
 
-
-
 #[get("/profile")]
-async fn profile(identity: Identity, hb: HandlebarsDataService<'_>, config: ConfigDataService) -> Result<HttpResponse> {
+async fn profile(
+	identity: Identity,
+	hb: HandlebarsDataService<'_>,
+	config: ConfigDataService,
+) -> Result<HttpResponse> {
 	let is_logged_in = identity.identity().is_some();
 
 	if is_logged_in {
@@ -18,26 +25,25 @@ async fn profile(identity: Identity, hb: HandlebarsDataService<'_>, config: Conf
 			"profile",
 			&json!({
 				"title": config.read()?.website.title
-			})
+			}),
 		)?;
 
 		Ok(HttpResponse::Ok().body(body))
 	} else {
 		let location = config.read()?.website.http_base_host.clone();
 
-		Ok(HttpResponse::TemporaryRedirect().append_header((header::LOCATION, location)).finish())
+		Ok(HttpResponse::TemporaryRedirect()
+			.append_header((header::LOCATION, location))
+			.finish())
 	}
 }
-
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Settings {
 	upload_type: Option<u8>,
 	unique_id: Option<String>,
-	join_date: Option<i64>
+	join_date: Option<i64>,
 }
-
 
 #[post("/user/settings")]
 async fn update_settings(identity: Identity, data: web::Form<Settings>) -> Result<HttpResponse> {
@@ -47,7 +53,6 @@ async fn update_settings(identity: Identity, data: web::Form<Settings>) -> Resul
 			return Ok(HttpResponse::Unauthorized().body("Not Logged in."));
 		}
 	};
-
 
 	if let Some(upload_id) = data.upload_type.and_then(UploadImageType::from_num) {
 		get_users_collection()
@@ -60,15 +65,13 @@ async fn update_settings(identity: Identity, data: web::Form<Settings>) -> Resul
 						"data.upload_type": upload_id as i32
 					}
 				},
-				None
+				None,
 			)
 			.await?;
 	}
 
 	Ok(HttpResponse::Ok().json("{}".to_string()))
 }
-
-
 
 #[get("/user/settings")]
 async fn get_settings(identity: Identity, _hb: HandlebarsDataService<'_>) -> Result<HttpResponse> {
@@ -91,16 +94,14 @@ async fn get_settings(identity: Identity, _hb: HandlebarsDataService<'_>) -> Res
 	Ok(HttpResponse::Ok().json(Settings {
 		upload_type: Some(user.data.upload_type.to_num()),
 		unique_id: Some(user.data.unique_id),
-		join_date: Some(user.data.join_date.timestamp_millis())
+		join_date: Some(user.data.join_date.timestamp_millis()),
 	}))
 }
-
-
 
 #[derive(Serialize, Deserialize)]
 struct ImageQuery {
 	year: u32,
-	month: u32
+	month: u32,
 }
 
 #[get("/user/images")]
@@ -114,10 +115,11 @@ async fn get_images(identity: Identity, query: web::Query<ImageQuery>) -> Result
 		}
 	};
 
-
 	let user = slim_user.upgrade().await?.unwrap();
 
-	let mut images = model::find_images_by_date(user.data.unique_id, query.year, query.month, &collection).await?;
+	let mut images =
+		model::find_images_by_date(user.data.unique_id, query.year, query.month, &collection)
+			.await?;
 
 	let images = {
 		let mut values = Vec::new();
@@ -128,7 +130,6 @@ async fn get_images(identity: Identity, query: web::Query<ImageQuery>) -> Result
 
 		values
 	};
-
 
 	Ok(HttpResponse::Ok().json(serde_json::json!({
 		"response": {

@@ -2,15 +2,15 @@ use std::{num::ParseIntError, sync::PoisonError};
 
 use thiserror::Error as ThisError;
 
-use std::io::Error as IoError;
 use handlebars::RenderError;
 use image::ImageError;
+use mongodb::error::Error as MongodbError;
 use reqwest::Error as HttpError;
 use serde_json::Error as JsonError;
-use mongodb::error::Error as MongodbError;
+use std::io::Error as IoError;
 
-use actix_web::Error as ActixError;
 use actix_multipart::MultipartError;
+use actix_web::Error as ActixError;
 use actix_web::ResponseError;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -47,9 +47,8 @@ pub enum Error {
 	B2(crate::upload::service::b2::JsonErrorStruct),
 
 	#[error("PNG Optimize Error: {0}")]
-	Oxipng(oxipng::PngError)
+	Oxipng(oxipng::PngError),
 }
-
 
 #[derive(Debug, ThisError)]
 pub enum InternalError {
@@ -82,12 +81,10 @@ pub enum InternalError {
 	GalleryDoesNotExist,
 
 	#[error("An Error Occured while trying to Optimize JPEG Image")]
-	MozJpegError
+	MozJpegError,
 }
 
-
 impl ResponseError for Error {}
-
 
 impl From<Error> for actix_web::body::Body {
 	fn from(val: Error) -> Self {
@@ -107,11 +104,10 @@ impl From<oxipng::PngError> for Error {
 	}
 }
 
-
 impl From<ParseIntError> for Error {
-    fn from(value: ParseIntError) -> Self {
-        Self::ParseInt(value)
-    }
+	fn from(value: ParseIntError) -> Self {
+		Self::ParseInt(value)
+	}
 }
 
 impl From<IoError> for Error {
@@ -163,9 +159,9 @@ impl From<RenderError> for Error {
 }
 
 impl From<crate::upload::service::b2::JsonErrorStruct> for Error {
-    fn from(value: crate::upload::service::b2::JsonErrorStruct) -> Self {
-        Self::B2(value)
-    }
+	fn from(value: crate::upload::service::b2::JsonErrorStruct) -> Self {
+		Self::B2(value)
+	}
 }
 
 impl<V> From<PoisonError<V>> for Error {

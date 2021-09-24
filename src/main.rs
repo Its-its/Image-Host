@@ -1,32 +1,32 @@
-#[macro_use] extern crate lazy_static;
-#[macro_use] extern crate serde_json;
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate serde_json;
+#[macro_use]
+extern crate serde_derive;
 
 use std::env;
 
-use db::model;
 use config::ConfigHelper;
+use db::model;
 use upload::service::Service;
 
-pub use error::Result;
-pub use words::{WordManager, Filename};
 pub use config::ConfigInner;
-
-
+pub use error::Result;
+pub use words::{Filename, WordManager};
 
 pub mod auth;
-pub mod upload;
-pub mod error;
-pub mod words;
 pub mod config;
-pub mod web;
 pub mod db;
-
+pub mod error;
+pub mod upload;
+pub mod web;
+pub mod words;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
 	env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
-    env_logger::init();
+	env_logger::init();
 
 	let config = ConfigHelper::<ConfigInner>::create_and_load("./app/config.json").await?;
 
@@ -34,9 +34,7 @@ async fn main() -> Result<()> {
 		panic!(r#"Please end the b2 "public_url" with a "/""#);
 	}
 
-
 	std::mem::forget(db::create_mongo_connection(&config.database).await?);
-
 
 	// Upload Service
 	let service = Service::pick_service_from_config(&config.services).await?;
