@@ -7,7 +7,7 @@ use twapi::{oauth1::request_token, Twapi};
 
 use crate::config::Config;
 use crate::db::model::{
-	create_auth_verify, find_and_remove_auth_verify, NewUser, UserData, UserTwitter,
+	create_auth_verify, find_and_remove_auth_verify, NewUser, UserTwitter,
 };
 use crate::db::{get_auth_collection, get_collection, get_users_collection, CollectionType};
 use crate::upload::image::UploadImageType;
@@ -134,14 +134,12 @@ pub async fn get_twitter_oauth_callback(
 						username: profile.screen_name,
 						display_name: profile.name,
 					},
-					data: UserData {
-						upload_type: UploadImageType::PrefixAndSuffix,
-						is_banned: false,
-						join_date: mongodb::bson::DateTime::now(),
-						unique_id: gen_uuid(),
-						image_count: 0,
-						deletion_count: 0,
-					},
+					upload_type: UploadImageType::PrefixAndSuffix,
+					is_banned: false,
+					join_date: mongodb::bson::DateTime::now(),
+					unique_id: gen_uuid(),
+					image_count: 0,
+					deletion_count: 0,
 				};
 
 				let inserted = get_collection(CollectionType::Users)

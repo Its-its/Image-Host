@@ -92,9 +92,9 @@ async fn get_settings(identity: Identity, _hb: HandlebarsDataService<'_>) -> Res
 	println!("{:#?}", user);
 
 	Ok(HttpResponse::Ok().json(Settings {
-		upload_type: Some(user.data.upload_type.to_num()),
-		unique_id: Some(user.data.unique_id),
-		join_date: Some(user.data.join_date.timestamp_millis()),
+		upload_type: Some(user.upload_type.to_num()),
+		unique_id: Some(user.unique_id),
+		join_date: Some(user.join_date.timestamp_millis()),
 	}))
 }
 
@@ -118,7 +118,7 @@ async fn get_images(identity: Identity, query: web::Query<ImageQuery>) -> Result
 	let user = slim_user.upgrade().await?.unwrap();
 
 	let mut images =
-		model::find_images_by_date(user.data.unique_id, query.year, query.month, &collection)
+		model::find_images_by_date(user.unique_id, query.year, query.month, &collection)
 			.await?;
 
 	let images = {

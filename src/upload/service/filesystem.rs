@@ -57,8 +57,7 @@ impl Service {
 		let file_name = if let Some(upload_type) = file_type {
 			upload_type.get_link_name(words, &collection).await?
 		} else {
-			user.data
-				.upload_type
+			user.upload_type
 				.get_link_name(words, &collection)
 				.await?
 		};

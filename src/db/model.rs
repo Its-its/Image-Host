@@ -45,7 +45,17 @@ pub struct User {
 
 	pub twitter: UserTwitter,
 
-	pub data: UserData,
+	#[serde(serialize_with = "bson_unsigned_fix")]
+	pub upload_type: UploadImageType,
+
+	pub is_banned: bool,
+
+	pub join_date: DateTime,
+
+	pub unique_id: String,
+
+	pub image_count: i32,
+	pub deletion_count: i32,
 
 	#[serde(rename = "__v")]
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -56,7 +66,7 @@ impl User {
 	pub fn into_slim(self) -> SlimUser {
 		SlimUser {
 			id: self.id,
-			unique_id: self.data.unique_id,
+			unique_id: self.unique_id,
 		}
 	}
 }
@@ -75,16 +85,34 @@ impl SlimUser {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewUser {
+	#[serde(serialize_with = "bson_unsigned_fix")]
+	pub upload_type: UploadImageType,
+
+	pub is_banned: bool,
+
+	pub join_date: DateTime,
+
+	pub unique_id: String,
+
+	pub image_count: i32,
+	pub deletion_count: i32,
+
 	pub twitter: UserTwitter,
-	pub data: UserData,
 }
 
 impl NewUser {
 	pub fn into_user(self, id: ObjectId) -> User {
 		User {
 			id,
+
+			upload_type: self.upload_type,
+			is_banned: self.is_banned,
+			join_date: self.join_date,
+			unique_id: self.unique_id,
+			image_count: self.image_count,
+			deletion_count: self.deletion_count,
+
 			twitter: self.twitter,
-			data: self.data,
 			version_key: None,
 		}
 	}
@@ -111,18 +139,6 @@ where
 	S: serde::Serializer,
 {
 	serializer.serialize_i32(value.to_num() as i32)
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UserData {
-	#[serde(serialize_with = "bson_unsigned_fix")]
-	pub upload_type: UploadImageType,
-	pub is_banned: bool,
-	pub join_date: DateTime,
-	pub unique_id: String,
-	pub image_count: i32,
-
-	pub deletion_count: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
