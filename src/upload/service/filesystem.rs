@@ -73,7 +73,13 @@ impl Service {
 
 		let size_original = file_data.len() as i64;
 
-		let data = image_compress_and_create_icon(&file_name, file_data).await?;
+		let mut data = image_compress_and_create_icon(&file_name, file_data).await?;
+
+		// Correct lowercase "i" in image names IF they're going to be in the same directory.
+		if self.icon_sub_directory == self.image_sub_directory && data.icon_name.as_bytes()[0] == b'i' {
+			data.image_name.replace_range(0..1, "I");
+			data.icon_name.replace_range(0..1, "I");
+		}
 
 		let size_compressed = data.image_data.len() as i64;
 
