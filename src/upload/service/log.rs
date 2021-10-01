@@ -24,10 +24,10 @@ impl Service {
 		let collection = db::get_images_collection();
 
 		let file_name = if let Some(upload_type) = file_type {
-			upload_type.get_link_name(words, &collection).await?
+			upload_type.get_link_name(words, false, &collection).await?
 		} else {
 			user.upload_type
-				.get_link_name(words, &collection)
+				.get_link_name(words, false, &collection)
 				.await?
 		};
 
@@ -65,8 +65,8 @@ impl Service {
 
 		Ok(SlimImage {
 			custom_name: None,
-			name: file_name.name().to_string(),
 			file_type: file_name.format().to_string(),
+			name: file_name.name,
 			size_original,
 			size_compressed,
 			is_edited: false,

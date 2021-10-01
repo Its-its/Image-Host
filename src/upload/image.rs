@@ -36,12 +36,13 @@ impl UploadImageType {
 	pub async fn get_link_name(
 		self,
 		words: &mut WordManager,
+		image_icon_same_dir: bool,
 		collection: &ImagesCollection,
 	) -> Result<Filename> {
 		match self {
-			Self::PrefixAndSuffix => words.get_next_filename_prefix_suffix(collection).await,
-			Self::Alphabetical8 => words.get_next_filename_sized_8(collection).await,
-			Self::Alphabetical32 => words.get_next_filename_sized_32(collection).await,
+			Self::PrefixAndSuffix => words.get_next_filename_prefix_suffix(image_icon_same_dir, collection).await,
+			Self::Alphabetical8 => words.get_next_filename_sized_8(image_icon_same_dir, collection).await,
+			Self::Alphabetical32 => words.get_next_filename_sized_32(image_icon_same_dir, collection).await,
 			// Self::Crypto =>
 		}
 	}

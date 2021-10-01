@@ -48,17 +48,13 @@ lazy_static! {
 
 #[derive(Debug, Clone)]
 pub struct Filename {
-	name: String,
+	pub name: String,
 	format: Option<String>,
 }
 
 impl Filename {
 	pub fn new(name: String) -> Self {
 		Self { name, format: None }
-	}
-
-	pub fn name(&self) -> &str {
-		&self.name
 	}
 
 	pub fn into_name(self) -> String {
@@ -88,7 +84,7 @@ impl Filename {
 	}
 
 	pub fn as_filename(&self) -> String {
-		format!("{}.{}", self.name(), self.format())
+		format!("{}.{}", self.name, self.format())
 	}
 }
 
@@ -131,18 +127,21 @@ pub struct WordManager {
 impl WordManager {
 	pub async fn get_next_filename_prefix_suffix(
 		&mut self,
+		image_icon_same_dir: bool,
 		collection: &ImagesCollection,
 	) -> Result<Filename> {
-		self.loop_and_check_model_db(|rng| get_next_filename_unchecked(rng), collection)
+		self.loop_and_check_model_db(|rng| get_next_filename_unchecked(rng), image_icon_same_dir, collection)
 			.await
 	}
 
 	pub async fn get_next_filename_sized_8(
 		&mut self,
+		image_icon_same_dir: bool,
 		collection: &ImagesCollection,
 	) -> Result<Filename> {
 		self.loop_and_check_model_db(
 			|rng| Filename::new(gen_sample_alphanumeric(8, rng)),
+			image_icon_same_dir,
 			collection,
 		)
 		.await
@@ -150,10 +149,12 @@ impl WordManager {
 
 	pub async fn get_next_filename_sized_32(
 		&mut self,
+		image_icon_same_dir: bool,
 		collection: &ImagesCollection,
 	) -> Result<Filename> {
 		self.loop_and_check_model_db(
 			|rng| Filename::new(gen_sample_alphanumeric(32, rng)),
+			image_icon_same_dir,
 			collection,
 		)
 		.await
@@ -162,12 +163,18 @@ impl WordManager {
 	async fn loop_and_check_model_db(
 		&mut self,
 		func: impl Fn(&mut ThreadRng) -> Filename,
+		image_icon_same_dir: bool,
 		collection: &ImagesCollection,
 	) -> Result<Filename> {
 		loop {
-			let file_name = func(&mut self.rng);
+			let mut file_name = func(&mut self.rng);
 
-			if !model::does_image_name_exist(file_name.name(), collection).await? {
+			// Correct lowercase "i" in image names IF they're going to be in the same directory.
+			if image_icon_same_dir && file_name.name.as_bytes()[0] == b'i' {
+				file_name.name.replace_range(0..1, "I");
+			}
+
+			if !model::does_image_name_exist(&file_name.name, collection).await? {
 				break Ok(file_name);
 			}
 		}

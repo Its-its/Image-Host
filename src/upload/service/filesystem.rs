@@ -53,12 +53,13 @@ impl Service {
 		}
 
 		let collection = db::get_images_collection();
+		let image_icon_same_dir = self.icon_sub_directory == self.image_sub_directory;
 
 		let file_name = if let Some(upload_type) = file_type {
-			upload_type.get_link_name(words, &collection).await?
+			upload_type.get_link_name(words, image_icon_same_dir, &collection).await?
 		} else {
 			user.upload_type
-				.get_link_name(words, &collection)
+				.get_link_name(words, image_icon_same_dir, &collection)
 				.await?
 		};
 
@@ -73,13 +74,7 @@ impl Service {
 
 		let size_original = file_data.len() as i64;
 
-		let mut data = image_compress_and_create_icon(&file_name, file_data).await?;
-
-		// Correct lowercase "i" in image names IF they're going to be in the same directory.
-		if self.icon_sub_directory == self.image_sub_directory && data.icon_name.as_bytes()[0] == b'i' {
-			data.image_name.replace_range(0..1, "I");
-			data.icon_name.replace_range(0..1, "I");
-		}
+		let data = image_compress_and_create_icon(&file_name, file_data).await?;
 
 		let size_compressed = data.image_data.len() as i64;
 
@@ -103,8 +98,8 @@ impl Service {
 
 		Ok(SlimImage {
 			custom_name: None,
-			name: file_name.name().to_string(),
 			file_type: file_name.format().to_string(),
+			name: file_name.name,
 			size_original,
 			size_compressed,
 			is_edited: false,
@@ -125,7 +120,7 @@ impl Service {
 		{
 			let mut path = self.icon_sub_directory.clone();
 			path.push(if self.image_sub_directory == self.icon_sub_directory {
-				format!("i{}", file_name.name())
+				format!("i{}", file_name.name)
 			} else {
 				file_name.into_name()
 			});
