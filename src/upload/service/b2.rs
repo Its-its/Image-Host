@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 
 use actix_web::error as web_error;
 use base64::encode as b64encode;
+use bytes::Bytes;
 use crypto::digest::Digest;
 use crypto::sha1::Sha1;
 use mongodb::bson::DateTime;
@@ -197,6 +198,8 @@ async fn upload_file_multi_try(
 	auth: &B2Authorization,
 	bucket_id: &str,
 ) -> Result<()> {
+	let image_buffer = Bytes::from(image_buffer);
+
 	let mut prev_error = None;
 
 	for _ in 0..5 {
@@ -210,7 +213,6 @@ async fn upload_file_multi_try(
 			}
 		};
 
-		// TODO: Remove clone()
 		match auth
 			.upload_file(&upload_url, file_name, image_buffer.clone())
 			.await
@@ -373,7 +375,7 @@ impl B2Authorization {
 		&self,
 		upload: &UploadUrlResponse,
 		file_name: &str,
-		image: Vec<u8>,
+		image: Bytes,
 	) -> Result<std::result::Result<serde_json::Value, JsonErrorStruct>> {
 		let client = reqwest::Client::new();
 

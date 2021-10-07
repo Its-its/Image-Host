@@ -30,6 +30,7 @@ mime = "0.3"
 uuid = { version = "0.8", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 bytemuck = "1.7"
+bytes = "1.1"
 
 image = "0.23"
 mozjpeg = "0.9"
