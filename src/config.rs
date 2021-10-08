@@ -92,8 +92,8 @@ pub struct ConfigInner {
 	pub website: ConfigWebsite,
 	pub passport: ConfigPassport,
 
-	#[serde(default)]
 	pub services: ConfigServices,
+	pub features: ConfigFeatures,
 }
 
 impl Default for ConfigInner {
@@ -106,6 +106,7 @@ impl Default for ConfigInner {
 			website: ConfigWebsite::default(),
 			passport: ConfigPassport::default(),
 			services: ConfigServices::default(),
+			features: ConfigFeatures::default(),
 		}
 	}
 }
@@ -198,6 +199,31 @@ pub struct ConfigPassportTwitter {
 	pub auth_path: String,
 	pub callback_path: String,
 }
+
+
+
+// Features
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct ConfigFeatures {
+	pub compression: ConfigFeatureCompression,
+	pub gallery: ConfigFeatureGallery,
+}
+
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct ConfigFeatureCompression {
+	pub enabled: bool,
+	pub quality: f32,
+}
+
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct ConfigFeatureGallery {
+	pub enabled: bool
+}
+
+
 
 // Services
 

@@ -4,9 +4,10 @@ use mongodb::bson::DateTime;
 use crate::db::model::{SlimImage, User};
 use crate::error::Result;
 use crate::upload::image::UploadImageType;
-use crate::{db, Filename, WordManager};
+use crate::web::{ConfigDataService, WordDataService};
+use crate::{db, Filename};
 
-use super::image_compress_and_create_icon;
+use super::process_image_and_create_icon;
 
 #[derive(Default)]
 pub struct Service;
@@ -19,16 +20,21 @@ impl Service {
 		file_data: Vec<u8>,
 		content_type: String,
 		ip_addr: String,
-		words: &mut WordManager,
+		config: &ConfigDataService,
+		words: &WordDataService,
 	) -> Result<SlimImage> {
 		let collection = db::get_images_collection();
 
-		let file_name = if let Some(upload_type) = file_type {
-			upload_type.get_link_name(words, false, &collection).await?
-		} else {
-			user.upload_type
-				.get_link_name(words, false, &collection)
-				.await?
+		let file_name = {
+			let mut words = words.lock()?;
+
+			if let Some(upload_type) = file_type {
+				upload_type.get_link_name(&mut *words, false, &collection).await?
+			} else {
+				user.upload_type
+					.get_link_name(&mut *words, false, &collection)
+					.await?
+			}
 		};
 
 		let file_name = file_name.set_format(content_type);
@@ -42,7 +48,7 @@ impl Service {
 
 		let size_original = file_data.len() as i64;
 
-		let data = image_compress_and_create_icon(&file_name, file_data).await?;
+		let data = process_image_and_create_icon(&file_name, file_data, config).await?;
 
 		let size_compressed = data.image_data.len() as i64;
 

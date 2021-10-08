@@ -7,9 +7,10 @@ use crate::config::ConfigServiceFileSystem;
 use crate::db::model::{SlimImage, User};
 use crate::error::Result;
 use crate::upload::image::UploadImageType;
+use crate::web::{ConfigDataService, WordDataService};
 use crate::{db, Filename, WordManager};
 
-use super::image_compress_and_create_icon;
+use super::process_image_and_create_icon;
 
 pub struct Service {
 	image_sub_directory: PathBuf,
@@ -36,7 +37,8 @@ impl Service {
 		file_type: Option<UploadImageType>,
 		file_data: Vec<u8>,
 		content_type: String,
-		words: &mut WordManager,
+		config: &ConfigDataService,
+		words: &WordDataService,
 	) -> Result<SlimImage> {
 		let same_dirs = self.image_sub_directory == self.icon_sub_directory;
 
@@ -55,12 +57,16 @@ impl Service {
 		let collection = db::get_images_collection();
 		let image_icon_same_dir = self.icon_sub_directory == self.image_sub_directory;
 
-		let file_name = if let Some(upload_type) = file_type {
-			upload_type.get_link_name(words, image_icon_same_dir, &collection).await?
-		} else {
-			user.upload_type
-				.get_link_name(words, image_icon_same_dir, &collection)
-				.await?
+		let file_name = {
+			let mut words = words.lock()?;
+
+			if let Some(upload_type) = file_type {
+				upload_type.get_link_name(&mut *words, image_icon_same_dir, &collection).await?
+			} else {
+				user.upload_type
+					.get_link_name(&mut *words, image_icon_same_dir, &collection)
+					.await?
+			}
 		};
 
 		let file_name = file_name.set_format(content_type);
@@ -74,7 +80,7 @@ impl Service {
 
 		let size_original = file_data.len() as i64;
 
-		let data = image_compress_and_create_icon(&file_name, file_data).await?;
+		let data = process_image_and_create_icon(&file_name, file_data, config).await?;
 
 		let size_compressed = data.image_data.len() as i64;
 

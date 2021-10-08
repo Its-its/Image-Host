@@ -32,9 +32,9 @@ use crate::{
 	words, Result, WordManager,
 };
 
-mod gallery;
-mod media;
-mod profile;
+pub mod gallery;
+pub mod media;
+pub mod profile;
 
 // Services
 pub type UploadDataService = web::Data<Mutex<Service>>;
@@ -207,10 +207,10 @@ async fn upload(
 		.map(|v| v.to_lowercase().contains("/g/")) // TODO: Add Website URL.
 		.unwrap_or_default();
 
-	let ip_addr: String = req
+	let ip_addr = req
 		.connection_info()
 		.remote_addr()
-		.map_or(String::new(), |c| c.to_string());
+		.map_or_else(String::new, |c| c.to_string());
 
 	// TODO: Properly stream.
 	// Make a class to ensure both fields (image, uid) are there and proper.
@@ -310,7 +310,8 @@ async fn upload(
 			file_data,
 			image_content_type,
 			ip_addr,
-			&mut *words.lock()?,
+			&config,
+			&words,
 		)
 		.await?;
 
@@ -407,17 +408,17 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 
 	HttpServer::new(move || {
 		let config = config.clone();
-		let read = config.read().unwrap();
+		let config_read = config.read().unwrap();
 
-		let session_key = read.session_secret.clone();
+		let session_key = config_read.session_secret.clone();
 
 		let base_url_with_www =
-			header::HeaderValue::from_str(&format!("www.{}", read.website.http_base_host)).unwrap();
-		let base_url_non_www = header::HeaderValue::from_str(&read.website.http_base_host).unwrap();
+			header::HeaderValue::from_str(&format!("www.{}", config_read.website.http_base_host)).unwrap();
+		let base_url_non_www = header::HeaderValue::from_str(&config_read.website.http_base_host).unwrap();
 		let base_url_non_www_2 = base_url_non_www.clone(); // TODO: Remove.
 
-		let image_url = read.website.http_image_host.clone();
-		let icon_url = read.website.http_icon_host.clone();
+		let image_url = config_read.website.http_image_host.clone();
+		let icon_url = config_read.website.http_icon_host.clone();
 
 		let app = App::new()
 			// enable logger
@@ -441,7 +442,7 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 			.app_data(config.clone())
 			.app_data(handlebars_ref.clone());
 
-		let app = media::create_services(app, image_url, icon_url, &*read);
+		let app = media::create_services(app, image_url, icon_url, &*config_read);
 
 		// Redirect off www
 		app.service(
@@ -479,17 +480,13 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 				.service(profile::update_settings)
 				.service(profile::get_images)
 				.service(profile::get_settings)
-				.service(gallery::home)
-				.service(gallery::item)
-				.service(gallery::gallery_new)
-				.service(gallery::gallery_delete)
-				.service(gallery::gallery_update)
-				.service(gallery::gallery_image_list)
 				.service(get_image_info)
 				.service(update_image)
 				.service(remove_image);
 
-			twitter::register(scope, &*read)
+			let scope = crate::feature::gallery::register(scope, &*config_read);
+
+			twitter::register(scope, &*config_read)
 				.service(actix_files::Files::new("/", "./app/frontend/public/www"))
 		})
 	})

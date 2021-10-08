@@ -22,6 +22,7 @@ pub mod error;
 pub mod upload;
 pub mod web;
 pub mod words;
+pub mod feature;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -35,6 +36,24 @@ async fn main() -> Result<()> {
 	}
 
 	std::mem::forget(db::create_mongo_connection(&config.database).await?);
+
+	println!(
+		"Feature Gallery {}",
+		if config.features.gallery.enabled {
+			"enabled"
+		} else {
+			"disabled"
+		}
+	);
+
+	println!(
+		"Feature Compression {}",
+		if config.features.compression.enabled {
+			"enabled"
+		} else {
+			"disabled"
+		}
+	);
 
 	// Upload Service
 	let service = Service::pick_service_from_config(&config.services).await?;
