@@ -79,7 +79,7 @@ impl Service {
 	}
 
 	pub async fn process_files(
-		&mut self,
+		&self,
 		user: User,
 		file_type: Option<UploadImageType>,
 		file_data: Vec<u8>,
@@ -104,7 +104,7 @@ impl Service {
 		}
 	}
 
-	pub async fn hide_file(&mut self, file_name: Filename) -> Result<()> {
+	pub async fn hide_file(&self, file_name: Filename) -> Result<()> {
 		match self {
 			Self::Log(v) => v.hide_file(file_name),
 			Self::B2(v) => v.hide_file(file_name).await,

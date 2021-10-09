@@ -14,7 +14,7 @@ pub struct Service;
 
 impl Service {
 	pub async fn process_files(
-		&mut self,
+		&self,
 		user: User,
 		file_type: Option<UploadImageType>,
 		file_data: Vec<u8>,
@@ -82,7 +82,7 @@ impl Service {
 		})
 	}
 
-	pub fn hide_file(&mut self, file_name: Filename) -> Result<()> {
+	pub fn hide_file(&self, file_name: Filename) -> Result<()> {
 		println!("[LOG]: Removing File Name {:?}", file_name);
 
 		Ok(())

@@ -37,7 +37,7 @@ pub mod media;
 pub mod profile;
 
 // Services
-pub type UploadDataService = web::Data<Mutex<Service>>;
+pub type UploadDataService = web::Data<Service>;
 pub type ConfigDataService = web::Data<RwLock<Config>>;
 pub type WordDataService = web::Data<Mutex<WordManager>>;
 pub type HandlebarsDataService<'a> = web::Data<Handlebars<'a>>;
@@ -177,7 +177,7 @@ async fn remove_image(
 	if let Some(image) = res {
 		let file_name = image.get_file_name();
 
-		service.lock()?.hide_file(file_name).await?;
+		service.hide_file(file_name).await?;
 
 		let res = image.delete_request(&collection).await?;
 
@@ -303,7 +303,6 @@ async fn upload(
 	};
 
 	let slim_image = service
-		.lock()?
 		.process_files(
 			user,
 			custom_file_type,
@@ -401,7 +400,7 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 		.unwrap();
 	let handlebars_ref = web::Data::new(handlebars);
 
-	let service = web::Data::new(Mutex::new(service));
+	let service = web::Data::new(service);
 	let config = web::Data::new(RwLock::new(config));
 
 	println!("Starting website.");

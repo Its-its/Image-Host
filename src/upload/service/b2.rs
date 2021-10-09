@@ -7,6 +7,8 @@ use bytes::Bytes;
 use crypto::digest::Digest;
 use crypto::sha1::Sha1;
 use mongodb::bson::DateTime;
+use tokio::sync::RwLock;
+use tokio::time::sleep;
 
 use crate::config::ConfigServiceB2;
 use crate::db::model::{self, SlimImage, User};
@@ -25,7 +27,7 @@ const API_URL_V2: &str = "https://api.backblazeb2.com/b2api/v2";
 
 pub struct Service {
 	credentials: Credentials,
-	auth: B2Authorization,
+	auth: RwLock<B2Authorization>,
 
 	bucket_id: String,
 
@@ -50,7 +52,7 @@ impl Service {
 		}
 
 		let credentials = Credentials::new(&config.id, &config.key);
-		let auth = credentials.authorize().await?;
+		let auth = RwLock::new(credentials.authorize().await?);
 
 		Ok(Self {
 			credentials,
@@ -66,7 +68,7 @@ impl Service {
 	}
 
 	pub async fn process_files(
-		&mut self,
+		&self,
 		user: User,
 		file_type: Option<UploadImageType>,
 		file_data: Vec<u8>,
@@ -76,7 +78,7 @@ impl Service {
 		words: &WordDataService,
 	) -> Result<SlimImage> {
 		if self.last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
-			self.auth = self.credentials.authorize().await?;
+			*self.auth.write().await = self.credentials.authorize().await?;
 		}
 
 		let collection = db::get_images_collection();
@@ -173,9 +175,9 @@ impl Service {
 		Ok(new_image.into())
 	}
 
-	pub async fn hide_file(&mut self, file_name: Filename) -> Result<()> {
+	pub async fn hide_file(&self, file_name: Filename) -> Result<()> {
 		if self.last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
-			self.auth = self.credentials.authorize().await?;
+			*self.auth.write().await = self.credentials.authorize().await?;
 		}
 
 		{
@@ -201,12 +203,14 @@ impl Service {
 async fn upload_file_multi_try(
 	file_name: &str,
 	image_buffer: Vec<u8>,
-	auth: &B2Authorization,
+	auth: &RwLock<B2Authorization>,
 	bucket_id: &str,
 ) -> Result<()> {
 	let image_buffer = Bytes::from(image_buffer);
 
 	let mut prev_error = None;
+
+	let auth = auth.read().await;
 
 	for _ in 0..5 {
 		// For Some reason getting the upload url errors.
@@ -214,7 +218,7 @@ async fn upload_file_multi_try(
 			Ok(v) => v,
 			Err(e) => {
 				prev_error = Some(e);
-				tokio::time::sleep(Duration::from_millis(1000)).await;
+				sleep(Duration::from_millis(1000)).await;
 				continue;
 			}
 		};
@@ -225,13 +229,13 @@ async fn upload_file_multi_try(
 		{
 			Ok(Err(error)) => {
 				prev_error = Some(error.into());
-				tokio::time::sleep(Duration::from_millis(1000)).await;
+				sleep(Duration::from_millis(1000)).await;
 				continue;
 			}
 
 			Err(error) => {
 				prev_error = Some(error);
-				tokio::time::sleep(Duration::from_millis(1000)).await;
+				sleep(Duration::from_millis(1000)).await;
 				continue;
 			}
 
@@ -246,10 +250,12 @@ async fn upload_file_multi_try(
 
 async fn try_hide_file_multi(
 	file_path: &str,
-	auth: &B2Authorization,
+	auth: &RwLock<B2Authorization>,
 	bucket_id: &str,
 ) -> Result<()> {
 	let mut prev_error = None;
+
+	let auth = auth.read().await;
 
 	for _ in 0..5 {
 		match auth.hide_file(bucket_id, file_path).await {
@@ -260,13 +266,13 @@ async fn try_hide_file_multi(
 				}
 
 				prev_error = Some(error.into());
-				tokio::time::sleep(Duration::from_millis(1000)).await;
+				sleep(Duration::from_millis(1000)).await;
 				continue;
 			}
 
 			Err(error) => {
 				prev_error = Some(error);
-				tokio::time::sleep(Duration::from_millis(1000)).await;
+				sleep(Duration::from_millis(1000)).await;
 				continue;
 			}
 

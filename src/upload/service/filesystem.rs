@@ -32,7 +32,7 @@ impl Service {
 	}
 
 	pub async fn process_files(
-		&mut self,
+		&self,
 		user: User,
 		file_type: Option<UploadImageType>,
 		file_data: Vec<u8>,
@@ -115,7 +115,7 @@ impl Service {
 		})
 	}
 
-	pub async fn hide_file(&mut self, file_name: Filename) -> Result<()> {
+	pub async fn hide_file(&self, file_name: Filename) -> Result<()> {
 		{
 			let mut path = self.image_sub_directory.clone();
 			path.push(file_name.as_filename());
