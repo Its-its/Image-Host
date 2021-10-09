@@ -211,10 +211,19 @@ pub struct ConfigFeatures {
 }
 
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ConfigFeatureCompression {
 	pub enabled: bool,
 	pub quality: f32,
+}
+
+impl Default for ConfigFeatureCompression {
+    fn default() -> Self {
+        Self {
+			enabled: false,
+			quality: 80.0
+		}
+    }
 }
 
 
