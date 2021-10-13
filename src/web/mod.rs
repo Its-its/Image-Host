@@ -24,6 +24,7 @@ use crate::auth::twitter;
 use crate::config::Config;
 use crate::db::get_users_collection;
 use crate::db::model::find_user_by_id;
+use crate::upload::UploadProcessData;
 use crate::upload::image::UploadImageType;
 use crate::upload::service::Service;
 use crate::{
@@ -215,10 +216,10 @@ async fn upload(
 	// TODO: Properly stream.
 	// Make a class to ensure both fields (image, uid) are there and proper.
 
-	let mut image_content_type = None;
+	let mut content_type = None;
 	let mut image_data = None;
 	let mut uid = None;
-	let mut custom_file_type = None;
+	let mut file_type = None;
 
 	while let Some(field) = multipart.try_next().await? {
 		let disp = field.content_disposition().unwrap();
@@ -226,7 +227,7 @@ async fn upload(
 		if disp.is_form_data() {
 			match disp.get_name() {
 				Some("image") => {
-					image_content_type = Some(field.content_type().to_string());
+					content_type = Some(field.content_type().to_string());
 					image_data = Some(get_file(field).await?);
 				}
 
@@ -235,7 +236,7 @@ async fn upload(
 				}
 
 				Some("type") => {
-					custom_file_type = get_file_type(field).await?;
+					file_type = get_file_type(field).await?;
 				}
 
 				_ => (),
@@ -245,12 +246,12 @@ async fn upload(
 
 	// Gallery File Type
 	if is_gallery_upload {
-		custom_file_type = Some(UploadImageType::Alphabetical32);
+		file_type = Some(UploadImageType::Alphabetical32);
 	}
 
 	// Process File
 
-	let image_content_type = match image_content_type {
+	let content_type = match content_type {
 		Some(v) => v,
 		None => {
 			let base_url = config.read()?.website.http_base_host.clone();
@@ -304,11 +305,13 @@ async fn upload(
 
 	let slim_image = service
 		.process_files(
-			user,
-			custom_file_type,
-			file_data,
-			image_content_type,
-			ip_addr,
+			UploadProcessData {
+				user,
+				file_type,
+				file_data,
+				content_type,
+				ip_addr
+			},
 			&config,
 			&words,
 		)

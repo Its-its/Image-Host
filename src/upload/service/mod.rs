@@ -8,10 +8,7 @@ use crate::{
 		ConfigServiceFileSystem,
 		ConfigServices
 	},
-	db::model::{
-		SlimImage,
-		User
-	},
+	db::model::SlimImage,
 	feature::compress::compress_if_enabled,
 	web::{
 		ConfigDataService,
@@ -19,7 +16,7 @@ use crate::{
 	}
 };
 
-use super::image::UploadImageType;
+use super::UploadProcessData;
 
 pub mod b2;
 pub mod filesystem;
@@ -80,25 +77,21 @@ impl Service {
 
 	pub async fn process_files(
 		&self,
-		user: User,
-		file_type: Option<UploadImageType>,
-		file_data: Vec<u8>,
-		content_type: String,
-		ip_addr: String,
+		upload_data: UploadProcessData,
 		config: &ConfigDataService,
 		words: &WordDataService,
 	) -> Result<SlimImage> {
 		match self {
 			Self::Log(v) => {
-				v.process_files(user, file_type, file_data, content_type, ip_addr, config, words)
+				v.process_files(upload_data, config, words)
 					.await
 			}
 			Self::B2(v) => {
-				v.process_files(user, file_type, file_data, content_type, ip_addr, config, words)
+				v.process_files(upload_data, config, words)
 					.await
 			}
 			Self::FileSystem(v) => {
-				v.process_files(user, file_type, file_data, content_type, config, words)
+				v.process_files(upload_data, config, words)
 					.await
 			}
 		}

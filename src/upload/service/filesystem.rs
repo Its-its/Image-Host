@@ -1,14 +1,13 @@
 use std::path::PathBuf;
 
-use actix_web::error as web_error;
 use mongodb::bson::DateTime;
 
 use crate::config::ConfigServiceFileSystem;
-use crate::db::model::{SlimImage, User};
+use crate::db::model::SlimImage;
 use crate::error::Result;
-use crate::upload::image::UploadImageType;
+use crate::upload::UploadProcessData;
 use crate::web::{ConfigDataService, WordDataService};
-use crate::{db, Filename, WordManager};
+use crate::{db, Filename};
 
 use super::process_image_and_create_icon;
 
@@ -33,10 +32,7 @@ impl Service {
 
 	pub async fn process_files(
 		&self,
-		user: User,
-		file_type: Option<UploadImageType>,
-		file_data: Vec<u8>,
-		content_type: String,
+		upload_data: UploadProcessData,
 		config: &ConfigDataService,
 		words: &WordDataService,
 	) -> Result<SlimImage> {
@@ -55,32 +51,14 @@ impl Service {
 		}
 
 		let collection = db::get_images_collection();
-		let image_icon_same_dir = self.icon_sub_directory == self.image_sub_directory;
 
-		let file_name = {
-			let mut words = words.lock()?;
+		let file_name = upload_data.get_file_name(self.icon_sub_directory == self.image_sub_directory, words, &collection)
+			.await?;
 
-			if let Some(upload_type) = file_type {
-				upload_type.get_link_name(&mut *words, image_icon_same_dir, &collection).await?
-			} else {
-				user.upload_type
-					.get_link_name(&mut *words, image_icon_same_dir, &collection)
-					.await?
-			}
-		};
 
-		let file_name = file_name.set_format(content_type);
+		let size_original = upload_data.file_data.len() as i64;
 
-		if !file_name.is_accepted() {
-			return Err(web_error::ErrorNotAcceptable(
-				"Invalid file format. Expected gif, png, or jpeg.",
-			)
-			.into());
-		}
-
-		let size_original = file_data.len() as i64;
-
-		let data = process_image_and_create_icon(&file_name, file_data, config).await?;
+		let data = process_image_and_create_icon(&file_name, upload_data.file_data, config).await?;
 
 		let size_compressed = data.image_data.len() as i64;
 

@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-use actix_web::error as web_error;
 use base64::encode as b64encode;
 use bytes::Bytes;
 use crypto::digest::Digest;
@@ -11,9 +10,9 @@ use tokio::sync::RwLock;
 use tokio::time::sleep;
 
 use crate::config::ConfigServiceB2;
-use crate::db::model::{self, SlimImage, User};
+use crate::db::model::{self, SlimImage};
 use crate::error::{InternalError, Result};
-use crate::upload::image::UploadImageType;
+use crate::upload::UploadProcessData;
 use crate::web::{ConfigDataService, WordDataService};
 use crate::{db, Filename};
 
@@ -27,6 +26,7 @@ const API_URL_V2: &str = "https://api.backblazeb2.com/b2api/v2";
 
 pub struct Service {
 	credentials: Credentials,
+	// TODO: Make Static and have AUTH checker in another thread.
 	auth: RwLock<B2Authorization>,
 
 	bucket_id: String,
@@ -69,11 +69,7 @@ impl Service {
 
 	pub async fn process_files(
 		&self,
-		user: User,
-		file_type: Option<UploadImageType>,
-		file_data: Vec<u8>,
-		content_type: String,
-		ip_addr: String,
+		upload_data: UploadProcessData,
 		config: &ConfigDataService,
 		words: &WordDataService,
 	) -> Result<SlimImage> {
@@ -83,43 +79,23 @@ impl Service {
 
 		let collection = db::get_images_collection();
 
-		let image_icon_same_dir = self.icon_sub_directory == self.image_sub_directory;
+		let file_name = upload_data.get_file_name(self.icon_sub_directory == self.image_sub_directory, words, &collection)
+			.await?;
 
-		let file_name = {
-			let mut words = words.lock()?;
+		let size_original = upload_data.file_data.len() as i64;
 
-			if let Some(upload_type) = file_type {
-				upload_type.get_link_name(&mut *words, image_icon_same_dir, &collection).await?
-			} else {
-				user.upload_type
-					.get_link_name(&mut *words, image_icon_same_dir, &collection)
-					.await?
-			}
-		};
+		let file_data = process_image_and_create_icon(&file_name, upload_data.file_data, config).await?;
 
-		let file_name = file_name.set_format(content_type);
-
-		if !file_name.is_accepted() {
-			return Err(web_error::ErrorNotAcceptable(
-				"Invalid file format. Expected gif, png, or jpeg.",
-			)
-			.into());
-		}
-
-		let size_original = file_data.len() as i64;
-
-		let data = process_image_and_create_icon(&file_name, file_data, config).await?;
-
-		let size_compressed = data.image_data.len() as i64;
+		let size_compressed = file_data.image_data.len() as i64;
 
 		{
 			// Image Upload
 			let mut path = self.image_sub_directory.clone();
-			path.push(data.image_name);
+			path.push(file_data.image_name);
 
 			upload_file_multi_try(
 				path.to_str().unwrap(),
-				data.image_data,
+				file_data.image_data,
 				&self.auth,
 				&self.bucket_id,
 			)
@@ -130,14 +106,14 @@ impl Service {
 			// Icon Upload
 			let mut path = self.icon_sub_directory.clone();
 			path.push(if self.icon_sub_directory == self.image_sub_directory {
-				format!("i{}", data.icon_name)
+				format!("i{}", file_data.icon_name)
 			} else {
-				data.icon_name
+				file_data.icon_name
 			});
 
 			upload_file_multi_try(
 				path.to_str().unwrap(),
-				data.icon_data,
+				file_data.icon_data,
 				&self.auth,
 				&self.bucket_id,
 			)
@@ -159,12 +135,12 @@ impl Service {
 			view_count: 0,
 
 			uploader: model::ImageUploader {
-				uid: user.unique_id,
-				ip: Some(ip_addr),
+				uid: upload_data.user.unique_id,
+				ip: Some(upload_data.ip_addr),
 			},
 
 			upload_date: DateTime::now(),
-			uploader_id: Some(user.id),
+			uploader_id: Some(upload_data.user.id),
 
 			tags: None,
 			custom_name: None,
