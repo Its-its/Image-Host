@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::thread;
 use std::time::{Duration, Instant};
 
 use base64::encode as b64encode;
@@ -6,6 +7,7 @@ use bytes::Bytes;
 use crypto::digest::Digest;
 use crypto::sha1::Sha1;
 use mongodb::bson::DateTime;
+use tokio::runtime::Runtime;
 use tokio::sync::RwLock;
 use tokio::time::sleep;
 
@@ -24,17 +26,38 @@ use super::process_image_and_create_icon;
 const API_URL_V2: &str = "https://api.backblazeb2.com/b2api/v2";
 // const API_URL_V1: &str = "https://api.backblazeb2.com/b2api/v1";
 
-pub struct Service {
-	credentials: Credentials,
-	// TODO: Make Static and have AUTH checker in another thread.
-	auth: RwLock<B2Authorization>,
 
+struct AuthWrapper {
+	credentials: Credentials,
+	auth: B2Authorization,
+	last_authed: Instant,
+}
+
+impl AuthWrapper {
+	pub async fn re_auth(&mut self) -> Result<()> {
+		self.auth = self.credentials.authorize().await?;
+		self.last_authed = Instant::now();
+
+		Ok(())
+	}
+}
+
+
+lazy_static! {
+	static ref AUTH: RwLock<Option<AuthWrapper>> = RwLock::new(None);
+}
+
+
+async fn get_auth() -> B2Authorization {
+	AUTH.read().await.as_ref().unwrap().auth.clone()
+}
+
+
+pub struct Service {
 	bucket_id: String,
 
 	image_sub_directory: PathBuf,
 	icon_sub_directory: PathBuf,
-
-	last_authed: Instant,
 }
 
 impl Service {
@@ -51,19 +74,40 @@ impl Service {
 			panic!("B2 Service Bucked ID is empty.");
 		}
 
-		let credentials = Credentials::new(&config.id, &config.key);
-		let auth = RwLock::new(credentials.authorize().await?);
+		// Spawn Authentication Thread.
+		thread::spawn(|| {
+			let rt = Runtime::new().unwrap();
 
-		Ok(Self {
+			loop {
+				rt.block_on(async {
+					if AUTH.read().await.as_ref().unwrap().last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
+						let mut wrapper = AUTH.write().await;
+						let wrapper = wrapper.as_mut().unwrap();
+
+						if let Err(e) = wrapper.re_auth().await {
+							eprintln!("{}", e);
+						}
+					}
+				});
+
+				thread::sleep(Duration::from_secs(30));
+			}
+		});
+
+		let credentials = Credentials::new(&config.id, &config.key);
+		let auth = credentials.authorize().await?;
+
+		*AUTH.write().await = Some(AuthWrapper {
 			credentials,
 			auth,
+			last_authed: Instant::now(),
+		});
 
+		Ok(Self {
 			bucket_id: config.bucket_id.clone(),
 
 			image_sub_directory: PathBuf::from(&config.image_sub_directory),
 			icon_sub_directory: PathBuf::from(&config.icon_sub_directory),
-
-			last_authed: Instant::now(),
 		})
 	}
 
@@ -73,10 +117,6 @@ impl Service {
 		config: &ConfigDataService,
 		words: &WordDataService,
 	) -> Result<SlimImage> {
-		if self.last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
-			*self.auth.write().await = self.credentials.authorize().await?;
-		}
-
 		let collection = db::get_images_collection();
 
 		let file_name = upload_data.get_file_name(self.icon_sub_directory == self.image_sub_directory, words, &collection)
@@ -88,6 +128,8 @@ impl Service {
 
 		let size_compressed = file_data.image_data.len() as i64;
 
+		let auth = get_auth().await;
+
 		{
 			// Image Upload
 			let mut path = self.image_sub_directory.clone();
@@ -96,7 +138,7 @@ impl Service {
 			upload_file_multi_try(
 				path.to_str().unwrap(),
 				file_data.image_data,
-				&self.auth,
+				&auth,
 				&self.bucket_id,
 			)
 			.await?;
@@ -114,7 +156,7 @@ impl Service {
 			upload_file_multi_try(
 				path.to_str().unwrap(),
 				file_data.icon_data,
-				&self.auth,
+				&auth,
 				&self.bucket_id,
 			)
 			.await?;
@@ -152,16 +194,14 @@ impl Service {
 	}
 
 	pub async fn hide_file(&self, file_name: Filename) -> Result<()> {
-		if self.last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
-			*self.auth.write().await = self.credentials.authorize().await?;
-		}
+		let auth = get_auth().await;
 
 		{
 			// Image Upload
 			let mut path = self.image_sub_directory.clone();
 			path.push(file_name.as_filename());
 
-			try_hide_file_multi(path.to_str().unwrap(), &self.auth, &self.bucket_id).await?;
+			try_hide_file_multi(path.to_str().unwrap(), &auth, &self.bucket_id).await?;
 		}
 
 		{
@@ -169,7 +209,7 @@ impl Service {
 			let mut path = self.icon_sub_directory.clone();
 			path.push(format!("i{}.png", file_name.name));
 
-			try_hide_file_multi(path.to_str().unwrap(), &self.auth, &self.bucket_id).await?;
+			try_hide_file_multi(path.to_str().unwrap(), &auth, &self.bucket_id).await?;
 		}
 
 		Ok(())
@@ -179,14 +219,12 @@ impl Service {
 async fn upload_file_multi_try(
 	file_name: &str,
 	image_buffer: Vec<u8>,
-	auth: &RwLock<B2Authorization>,
+	auth: &B2Authorization,
 	bucket_id: &str,
 ) -> Result<()> {
 	let image_buffer = Bytes::from(image_buffer);
 
 	let mut prev_error = None;
-
-	let auth = auth.read().await;
 
 	for _ in 0..5 {
 		// For Some reason getting the upload url errors.
@@ -226,12 +264,10 @@ async fn upload_file_multi_try(
 
 async fn try_hide_file_multi(
 	file_path: &str,
-	auth: &RwLock<B2Authorization>,
+	auth: &B2Authorization,
 	bucket_id: &str,
 ) -> Result<()> {
 	let mut prev_error = None;
-
-	let auth = auth.read().await;
 
 	for _ in 0..5 {
 		match auth.hide_file(bucket_id, file_path).await {
