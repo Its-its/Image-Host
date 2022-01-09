@@ -20,7 +20,6 @@ use actix_web::{
 
 use mongodb::bson::{doc, Document};
 
-use crate::auth::twitter;
 use crate::config::Config;
 use crate::db::get_users_collection;
 use crate::db::model::find_user_by_id;
@@ -487,9 +486,10 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 				.service(remove_image);
 
 			let scope = crate::feature::gallery::register(scope, &*config_read);
+			let scope = crate::auth::twitter::register(scope, &*config_read);
+			let scope = crate::auth::passwordless::register(scope, &*config_read);
 
-			twitter::register(scope, &*config_read)
-				.service(actix_files::Files::new("/", "./app/frontend/public/www"))
+			scope.service(actix_files::Files::new("/", "./app/frontend/public/www"))
 		})
 	})
 	.bind(addr)?

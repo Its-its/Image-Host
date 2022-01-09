@@ -10,6 +10,7 @@ edition = "2018"
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
+serde_urlencoded = "0.7"
 
 env_logger = "0.8"
 
@@ -20,6 +21,7 @@ tokio = { version = "1.7", features = ["full"] }
 futures = { version = "0.3", features = ["std", "thread-pool"] }
 
 reqwest = { version = "0.11", features = ["json", "stream"] }
+lettre = "0.10.0-rc.3"
 
 rand = "0.8"
 regex = "1.5"
@@ -38,7 +40,7 @@ oxipng = "5.0"
 
 base64 = "0.13"
 
-mongodb = "2.0.0-beta.1"
+mongodb = "2.0.1"
 
 actix-files = "0.6.0-beta.6"
 actix-rt = "2.2.0"

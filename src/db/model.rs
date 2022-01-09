@@ -43,7 +43,8 @@ pub struct User {
 	#[serde(rename = "_id")]
 	pub id: ObjectId,
 
-	pub twitter: UserTwitter,
+	pub twitter: Option<UserTwitter>,
+	pub passwordless: Option<UserPasswordless>,
 
 	#[serde(serialize_with = "bson_unsigned_fix")]
 	pub upload_type: UploadImageType,
@@ -97,7 +98,8 @@ pub struct NewUser {
 	pub image_count: i32,
 	pub deletion_count: i32,
 
-	pub twitter: UserTwitter,
+	pub twitter: Option<UserTwitter>,
+	pub passwordless: Option<UserPasswordless>,
 }
 
 impl NewUser {
@@ -113,6 +115,8 @@ impl NewUser {
 			deletion_count: self.deletion_count,
 
 			twitter: self.twitter,
+			passwordless: self.passwordless,
+
 			version_key: None,
 		}
 	}
@@ -147,6 +151,12 @@ pub struct UserTwitter {
 	pub token: String,
 	pub username: String,
 	pub display_name: String,
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserPasswordless {
+	pub email: String
 }
 
 // IMAGE VIEWS

@@ -16,14 +16,14 @@ use crate::words::gen_uuid;
 use crate::Result;
 
 pub fn register(scope: Scope, config: &Config) -> Scope {
-	if config.passport.twitter.enabled {
+	if config.auth.twitter.enabled {
 		scope
 			.route(
-				&config.passport.twitter.auth_path,
+				&config.auth.twitter.auth_path,
 				web::get().to(get_twitter_oauth),
 			)
 			.route(
-				&config.passport.twitter.callback_path,
+				&config.auth.twitter.callback_path,
 				web::get().to(get_twitter_oauth_callback),
 			)
 	} else {
@@ -44,14 +44,14 @@ pub async fn get_twitter_oauth(
 	let config = config.read().unwrap();
 
 	let (oauth_token, oauth_token_secret, url) = request_token(
-		&config.passport.twitter.consumer_key,
-		&config.passport.twitter.consumer_secret,
+		&config.auth.twitter.consumer_key,
+		&config.auth.twitter.consumer_secret,
 		// TODO
 		&format!(
 			"{}://{}{}",
 			&config.website.url_protocol,
 			&config.website.http_base_host,
-			&config.passport.twitter.callback_path
+			&config.auth.twitter.callback_path
 		),
 		None,
 	)
@@ -95,8 +95,8 @@ pub async fn get_twitter_oauth_callback(
 	if let Some(auth_verify) = find_and_remove_auth_verify(&oauth_token, &auth_collection).await? {
 		let (oauth_token, oauth_token_secret, _user_id, _screen_name) =
 			twapi::oauth1::access_token(
-				&config.passport.twitter.consumer_key,
-				&config.passport.twitter.consumer_secret,
+				&config.auth.twitter.consumer_key,
+				&config.auth.twitter.consumer_secret,
 				&auth_verify.oauth_token,
 				&auth_verify.oauth_token_secret,
 				&oauth_verifier,
@@ -105,8 +105,8 @@ pub async fn get_twitter_oauth_callback(
 			.expect("access_token");
 
 		let user = twapi::UserAuth::new(
-			&config.passport.twitter.consumer_key,
-			&config.passport.twitter.consumer_secret,
+			&config.auth.twitter.consumer_key,
+			&config.auth.twitter.consumer_secret,
 			&oauth_token,
 			&oauth_token_secret,
 		);
@@ -128,12 +128,13 @@ pub async fn get_twitter_oauth_callback(
 				user
 			} else {
 				let new_user = NewUser {
-					twitter: UserTwitter {
+					twitter: Some(UserTwitter {
 						id: profile.id,
 						token: oauth_token,
 						username: profile.screen_name,
 						display_name: profile.name,
-					},
+					}),
+					passwordless: None,
 					upload_type: UploadImageType::PrefixAndSuffix,
 					is_banned: false,
 					join_date: mongodb::bson::DateTime::now(),

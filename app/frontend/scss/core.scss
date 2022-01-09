@@ -1,8 +1,10 @@
-body {
-	background: #2e2f3a;
+html {
+	height: 100%;
 }
 
-.body {
+body {
+	background: #2e2f3a;
+	color: #e6e6e6;
 	margin: 0;
 	height: 100%;
 }
@@ -24,6 +26,12 @@ body {
 	border-width: 2px;
 }
 
+.form-control {
+	label {
+		color: #e6e6e6;
+		font-weight: bold;
+	}
+}
 
 .fieldset {
 	border-color: #232329;
@@ -175,4 +183,11 @@ h1, h2, h3, h4 {
 	height: 100%;
 
 	background-color: rgba(20, 9, 26, 0.31);
+}
+
+.center-div {
+	display: grid;
+	align-content: center;
+	height: 100%;
+	justify-content: center;
 }

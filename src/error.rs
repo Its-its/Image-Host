@@ -2,11 +2,14 @@ use std::{num::ParseIntError, sync::PoisonError};
 
 use thiserror::Error as ThisError;
 
+use lettre::error::Error as LettreError;
+use lettre::transport::smtp::Error as SmtpError;
 use handlebars::RenderError;
 use image::ImageError;
 use mongodb::error::Error as MongodbError;
 use reqwest::Error as HttpError;
 use serde_json::Error as JsonError;
+use serde::de::value::Error as SerdeValueError;
 use std::io::Error as IoError;
 
 use actix_multipart::MultipartError;
@@ -25,7 +28,10 @@ pub enum Error {
 
 	#[error("Json Error: {0}")]
 	Json(JsonError),
+	#[error("Serde Value Error: {0}")]
+	SerdeValue(SerdeValueError),
 	#[error("IO Error: {0}")]
+
 	Io(IoError),
 	#[error("HTTP Error: {0}")]
 	Http(HttpError),
@@ -42,6 +48,10 @@ pub enum Error {
 	Image(ImageError),
 	#[error("Handlebars Error: {0}")]
 	Render(RenderError),
+	#[error("Lettre Error: {0}")]
+	Lettre(LettreError),
+	#[error("SMTP Error: {0}")]
+	Smtp(SmtpError),
 
 	#[error("Backblaze Error: {0}")]
 	B2(crate::upload::service::b2::JsonErrorStruct),
@@ -128,6 +138,12 @@ impl From<JsonError> for Error {
 	}
 }
 
+impl From<SerdeValueError> for Error {
+	fn from(value: SerdeValueError) -> Self {
+		Self::SerdeValue(value)
+	}
+}
+
 impl From<ActixError> for Error {
 	fn from(value: ActixError) -> Self {
 		Self::Actix(value)
@@ -155,6 +171,18 @@ impl From<ImageError> for Error {
 impl From<RenderError> for Error {
 	fn from(value: RenderError) -> Self {
 		Self::Render(value)
+	}
+}
+
+impl From<LettreError> for Error {
+	fn from(value: LettreError) -> Self {
+		Self::Lettre(value)
+	}
+}
+
+impl From<SmtpError> for Error {
+	fn from(value: SmtpError) -> Self {
+		Self::Smtp(value)
 	}
 }
 

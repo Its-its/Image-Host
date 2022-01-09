@@ -1,8 +1,10 @@
-body {
-  background: #2e2f3a;
+html {
+  height: 100%;
 }
 
-.body {
+body {
+  background: #2e2f3a;
+  color: #e6e6e6;
   margin: 0;
   height: 100%;
 }
@@ -20,6 +22,11 @@ body {
 .thumbnail {
   border-color: #232329;
   border-width: 2px;
+}
+
+.form-control label {
+  color: #e6e6e6;
+  font-weight: bold;
 }
 
 .fieldset {
@@ -152,6 +159,13 @@ h1, h2, h3, h4 {
   width: 100%;
   height: 100%;
   background-color: rgba(20, 9, 26, 0.31);
+}
+
+.center-div {
+  display: grid;
+  align-content: center;
+  height: 100%;
+  justify-content: center;
 }
 
 /*# sourceMappingURL=core.css.map */

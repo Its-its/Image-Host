@@ -1,6 +1,6 @@
 use std::sync::RwLock;
 
-use mongodb::{Client, Collection, Database};
+use mongodb::{Client, Collection, Database, IndexModel, bson::doc, options::{Collation, CollationStrength, IndexOptions}};
 
 use crate::{config::ConfigDatabase, Result};
 
@@ -14,17 +14,49 @@ pub type UsersCollection = Collection<User>;
 pub type GalleryCollection = Collection<Gallery>;
 pub type AuthCollection = Collection<AuthVerify>;
 
+
 lazy_static! {
 	static ref DATABASE: RwLock<Option<Database>> = RwLock::new(None);
 }
+
 
 pub async fn create_mongo_connection(config: &ConfigDatabase) -> Result<Client> {
 	let client = Client::with_uri_str(&config.url).await?;
 
 	*DATABASE.write().unwrap() = Some(client.database(&config.database));
 
+	create_indexes().await?;
+
 	Ok(client)
 }
+
+// Create Indexes if they don't exist.
+async fn create_indexes() -> Result<()> {
+	{ // Users
+		let users = get_users_collection();
+
+		let indexes = users.list_index_names().await?;
+
+		if !indexes.iter().any(|v| v == "email-cs-index") {
+			users.create_index(
+				IndexModel::builder()
+					.keys(doc! { "passwordless.email": 1 })
+					.options(
+						IndexOptions::builder()
+							.name("email-cs-index".to_string())
+							.collation(Collation::builder().locale("en").strength(CollationStrength::Secondary).build())
+							.build()
+					)
+					.build(),
+				None
+			).await?;
+		}
+	}
+
+	Ok(())
+}
+
+
 
 pub fn get_image_views_collection() -> ImageViewsCollection {
 	get_collection(CollectionType::ImageViews)

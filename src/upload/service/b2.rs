@@ -79,6 +79,8 @@ impl Service {
 			let rt = Runtime::new().unwrap();
 
 			loop {
+				thread::sleep(Duration::from_secs(30));
+
 				rt.block_on(async {
 					if AUTH.read().await.as_ref().unwrap().last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
 						let mut wrapper = AUTH.write().await;
@@ -89,8 +91,6 @@ impl Service {
 						}
 					}
 				});
-
-				thread::sleep(Duration::from_secs(30));
 			}
 		});
 

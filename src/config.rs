@@ -87,10 +87,11 @@ impl<C: DeserializeOwned + Serialize + Default> DerefMut for ConfigHelper<C> {
 pub struct ConfigInner {
 	pub session_secret: String,
 
+	pub email: ConfigEmail,
 	pub database: ConfigDatabase,
 
 	pub website: ConfigWebsite,
-	pub passport: ConfigPassport,
+	pub auth: ConfigAuth,
 
 	pub services: ConfigServices,
 	pub features: ConfigFeatures,
@@ -101,15 +102,35 @@ impl Default for ConfigInner {
 		Self {
 			session_secret: "secret key goes here".into(),
 
+			email: ConfigEmail::default(),
 			database: ConfigDatabase::default(),
 
 			website: ConfigWebsite::default(),
-			passport: ConfigPassport::default(),
+			auth: ConfigAuth::default(),
 			services: ConfigServices::default(),
 			features: ConfigFeatures::default(),
 		}
 	}
 }
+
+
+
+// Email
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct ConfigEmail {
+	pub display_name: String,
+	pub sending_email: String,
+	pub contact_email: String,
+
+	pub subject_line: String,
+
+	pub smtp_username: String,
+	pub smtp_password: String,
+	pub smtp_relay: String,
+}
+
+// Database
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ConfigDatabase {
@@ -125,6 +146,10 @@ impl Default for ConfigDatabase {
 		}
 	}
 }
+
+
+
+// Website
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ConfigWebsite {
@@ -168,16 +193,19 @@ impl Default for ConfigWebsite {
 	}
 }
 
-// Passport
+
+
+// Authentication
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct ConfigPassport {
-	pub google: ConfigPassportGoogle,
-	pub twitter: ConfigPassportTwitter,
+pub struct ConfigAuth {
+	pub google: ConfigAuthGoogle,
+	pub twitter: ConfigAuthTwitter,
+	pub passwordless: ConfigAuthPasswordless,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct ConfigPassportGoogle {
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ConfigAuthGoogle {
 	#[serde(default)]
 	pub enabled: bool,
 
@@ -188,8 +216,21 @@ pub struct ConfigPassportGoogle {
 	pub callback_path: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct ConfigPassportTwitter {
+impl Default for ConfigAuthGoogle {
+	fn default() -> Self {
+		Self {
+			enabled: Default::default(),
+			auth_path: String::from("/auth/google"),
+			callback_path: String::from("/auth/google/callback"),
+			client_id: String::new(),
+			client_secret: String::new(),
+		}
+	}
+}
+
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ConfigAuthTwitter {
 	#[serde(default)]
 	pub enabled: bool,
 
@@ -198,6 +239,41 @@ pub struct ConfigPassportTwitter {
 
 	pub auth_path: String,
 	pub callback_path: String,
+}
+
+impl Default for ConfigAuthTwitter {
+	fn default() -> Self {
+		Self {
+			enabled: Default::default(),
+			auth_path: String::from("/auth/twitter"),
+			callback_path: String::from("/auth/twitter/callback"),
+			consumer_key: String::new(),
+			consumer_secret: String::new(),
+		}
+	}
+}
+
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ConfigAuthPasswordless {
+	#[serde(default)]
+	pub enabled: bool,
+
+	pub secret_key_length: usize,
+
+	pub auth_path: String,
+	pub callback_path: String,
+}
+
+impl Default for ConfigAuthPasswordless {
+	fn default() -> Self {
+		Self {
+			secret_key_length: 30,
+			enabled: Default::default(),
+			auth_path: String::from("/auth/nopass"),
+			callback_path: String::from("/auth/nopass/callback")
+		}
+	}
 }
 
 
