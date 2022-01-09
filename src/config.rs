@@ -85,6 +85,8 @@ impl<C: DeserializeOwned + Serialize + Default> DerefMut for ConfigHelper<C> {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ConfigInner {
+	pub debug: bool,
+
 	pub session_secret: String,
 
 	pub email: ConfigEmail,
@@ -100,6 +102,8 @@ pub struct ConfigInner {
 impl Default for ConfigInner {
 	fn default() -> Self {
 		Self {
+			debug: false,
+
 			session_secret: "secret key goes here".into(),
 
 			email: ConfigEmail::default(),

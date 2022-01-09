@@ -396,7 +396,7 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 
 	// Handlebars
 	let mut handlebars = Handlebars::new();
-	handlebars.set_dev_mode(true);
+	handlebars.set_dev_mode(config.debug);
 	handlebars
 		.register_templates_directory(".hbs", "./app/frontend/views")
 		.unwrap();
