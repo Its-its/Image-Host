@@ -467,6 +467,8 @@ pub struct AuthVerify {
 	pub oauth_token: String,
 
 	pub oauth_token_secret: String,
+
+	pub created_at: DateTime,
 }
 
 pub async fn create_auth_verify(
@@ -480,6 +482,7 @@ pub async fn create_auth_verify(
 				id: None,
 				oauth_token,
 				oauth_token_secret,
+				created_at: DateTime::now()
 			},
 			None,
 		)

@@ -33,18 +33,39 @@ pub async fn create_mongo_connection(config: &ConfigDatabase) -> Result<Client> 
 // Create Indexes if they don't exist.
 async fn create_indexes() -> Result<()> {
 	{ // Users
-		let users = get_users_collection();
+		let collection = get_users_collection();
 
-		let indexes = users.list_index_names().await?;
+		let indexes = collection.list_index_names().await?;
 
 		if !indexes.iter().any(|v| v == "email-cs-index") {
-			users.create_index(
+			collection.create_index(
 				IndexModel::builder()
 					.keys(doc! { "passwordless.email": 1 })
 					.options(
 						IndexOptions::builder()
 							.name("email-cs-index".to_string())
 							.collation(Collation::builder().locale("en").strength(CollationStrength::Secondary).build())
+							.build()
+					)
+					.build(),
+				None
+			).await?;
+		}
+	}
+
+	{ // Auths
+		let collection = get_auth_collection();
+
+		let indexes = collection.list_index_names().await?;
+
+		if !indexes.iter().any(|v| v == "created_at-ttl-index") {
+			collection.create_index(
+				IndexModel::builder()
+					.keys(doc! { "created_at": 1 })
+					.options(
+						IndexOptions::builder()
+							.name("created_at-ttl-index".to_string())
+							.expire_after(std::time::Duration::from_secs(60 * 60))
 							.build()
 					)
 					.build(),
