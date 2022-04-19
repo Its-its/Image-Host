@@ -34,7 +34,7 @@ impl<C: DeserializeOwned + Serialize + Default> ConfigHelper<C> {
 		// File doesn't exist?
 		if tokio::fs::metadata(&self.path).await.is_err() {
 			tokio::fs::write(&self.path, serde_json::to_string_pretty(&self.config)?).await?;
-			panic!("Config file was missing. I created it.\nEnsure the config is correct. Located in app/config/config.json");
+			panic!("Config file was missing. I created it.\nEnsure the config is correct. Located in app/config.json");
 		}
 
 		// Error occured while reading the file?

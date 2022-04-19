@@ -18,7 +18,7 @@ use crate::config::{Config, ConfigEmail};
 use crate::db::model::{NewUser, UserPasswordless, create_auth_verify, find_and_remove_auth_verify};
 use crate::db::{get_auth_collection, get_collection, get_users_collection, CollectionType};
 use crate::upload::image::UploadImageType;
-use crate::web::{ConfigDataService, HandlebarsDataService};
+use crate::web::{ConfigDataService, HandlebarsDataService, remember_identity};
 use crate::words::{gen_sample_alphanumeric, gen_uuid};
 use crate::Result;
 
@@ -181,7 +181,7 @@ pub async fn get_passwordless_oauth_callback(
 			new_user.into_user(inserted.inserted_id.as_object_id().unwrap())
 		};
 
-		identity.remember(serde_json::to_string(&user.into_slim())?);
+		remember_identity(&identity, user)?;
 	}
 
 	Ok(HttpResponse::Found()

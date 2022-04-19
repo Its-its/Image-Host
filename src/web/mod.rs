@@ -22,7 +22,7 @@ use mongodb::bson::{doc, Document};
 
 use crate::config::Config;
 use crate::db::get_users_collection;
-use crate::db::model::find_user_by_id;
+use crate::db::model::{find_user_by_id, SlimUser};
 use crate::upload::UploadProcessData;
 use crate::upload::image::UploadImageType;
 use crate::upload::service::Service;
@@ -46,6 +46,12 @@ pub fn get_slim_user_identity(identity: Identity) -> Option<model::SlimUser> {
 	let id = identity.identity()?;
 	serde_json::from_str(&id).ok()
 }
+
+pub fn remember_identity<I: Into<SlimUser>>(identity: &Identity, value: I) -> Result<()> {
+	identity.remember(serde_json::to_string(&value.into())?);
+	Ok(())
+}
+
 
 #[get("/")]
 async fn index(

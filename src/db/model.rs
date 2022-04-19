@@ -9,9 +9,8 @@ use rand::prelude::ThreadRng;
 
 use crate::{error::Result, upload::image::UploadImageType, words, Filename};
 
-use super::{
-	get_users_collection, AuthCollection, GalleryCollection, ImagesCollection, UsersCollection,
-};
+use super::{get_users_collection, AuthCollection, GalleryCollection, ImagesCollection, UsersCollection};
+
 
 pub enum UserId {
 	Id(ObjectId),
@@ -35,6 +34,7 @@ impl From<ObjectId> for UserId {
 		Self::Id(id)
 	}
 }
+
 
 // USERS
 
@@ -63,14 +63,15 @@ pub struct User {
 	pub version_key: Option<i32>,
 }
 
-impl User {
-	pub fn into_slim(self) -> SlimUser {
-		SlimUser {
-			id: self.id,
-			unique_id: self.unique_id,
+impl From<User> for SlimUser {
+    fn from(val: User) -> Self {
+        SlimUser {
+			id: val.id,
+			unique_id: val.unique_id,
 		}
-	}
+    }
 }
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SlimUser {
@@ -83,6 +84,7 @@ impl SlimUser {
 		find_user_by_id(self.id, &get_users_collection()).await
 	}
 }
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewUser {
@@ -145,6 +147,7 @@ where
 	serializer.serialize_i32(value.to_num() as i32)
 }
 
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserTwitter {
 	pub id: i64,
@@ -158,6 +161,7 @@ pub struct UserTwitter {
 pub struct UserPasswordless {
 	pub email: String
 }
+
 
 // IMAGE VIEWS
 
@@ -173,6 +177,7 @@ pub struct ImageViews {
 fn is_false(value: &bool) -> bool {
 	!value
 }
+
 
 // IMAGES
 
@@ -259,11 +264,13 @@ impl Image {
 	}
 }
 
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ImageUploader {
 	pub uid: String,
 	pub ip: Option<String>,
 }
+
 
 // Image sent to front-end
 #[derive(Debug, Serialize, Deserialize)]
@@ -307,6 +314,7 @@ impl From<Image> for SlimImage {
 		}
 	}
 }
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Gallery {
@@ -372,6 +380,7 @@ impl Gallery {
 			.await?)
 	}
 }
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GalleryImage {
@@ -457,6 +466,7 @@ pub async fn find_images_from_gallery(
 
 	Ok(cursor.try_collect().await?)
 }
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AuthVerify {
@@ -556,6 +566,7 @@ pub async fn find_images_by_date<I: Into<UserId>>(
 		}
 	}
 }
+
 
 // Util
 

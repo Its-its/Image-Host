@@ -6,12 +6,10 @@ use mongodb::bson::doc;
 use twapi::{oauth1::request_token, Twapi};
 
 use crate::config::Config;
-use crate::db::model::{
-	create_auth_verify, find_and_remove_auth_verify, NewUser, UserTwitter,
-};
+use crate::db::model::{create_auth_verify, find_and_remove_auth_verify, NewUser, UserTwitter};
 use crate::db::{get_auth_collection, get_collection, get_users_collection, CollectionType};
 use crate::upload::image::UploadImageType;
-use crate::web::ConfigDataService;
+use crate::web::{ConfigDataService, remember_identity};
 use crate::words::gen_uuid;
 use crate::Result;
 
@@ -46,7 +44,6 @@ pub async fn get_twitter_oauth(
 	let (oauth_token, oauth_token_secret, url) = request_token(
 		&config.auth.twitter.consumer_key,
 		&config.auth.twitter.consumer_secret,
-		// TODO
 		&format!(
 			"{}://{}{}",
 			&config.website.url_protocol,
@@ -150,7 +147,7 @@ pub async fn get_twitter_oauth_callback(
 				new_user.into_user(inserted.inserted_id.as_object_id().unwrap())
 			};
 
-			identity.remember(serde_json::to_string(&user.into_slim()).unwrap());
+			remember_identity(&identity, user)?;
 		} else {
 			println!("{:#?}", resp);
 		}
