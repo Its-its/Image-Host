@@ -127,7 +127,6 @@ pub async fn get_twitter_oauth_callback(
 				let new_user = NewUser {
 					twitter: Some(UserTwitter {
 						id: profile.id,
-						token: oauth_token,
 						username: profile.screen_name,
 						display_name: profile.name,
 					}),

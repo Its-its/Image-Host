@@ -151,7 +151,6 @@ where
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserTwitter {
 	pub id: i64,
-	pub token: String,
 	pub username: String,
 	pub display_name: String,
 }
