@@ -43,11 +43,16 @@ pub fn create_services<
 		if read.services.b2.enabled {
 			app.service(image_factory.route(
 				"/{name}",
-				web::to(move |name: web::Path<String>, config: ConfigDataService| {
+				web::to(move |mut name: web::Path<String>, config: ConfigDataService| {
 					let url = {
 						let read = config.read().unwrap();
 
 						let input = if name.starts_with('i') {
+							// We don't prepend 'i' if the icon dir is different than the image one.
+							if read.services.b2.icon_sub_directory != read.services.b2.image_sub_directory {
+								name.remove(0);
+							}
+
 							&read.services.b2.icon_sub_directory
 						} else {
 							&read.services.b2.image_sub_directory
