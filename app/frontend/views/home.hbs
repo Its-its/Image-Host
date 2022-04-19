@@ -206,7 +206,13 @@
 						<a href="/profile" class="button">GoTo Profile</a>
 						<a href="/logout" class="button">Logout</a>
 					{{ else }}
-						<a href="/auth/twitter" class="button">Login via <span class="fa fa-twitter"></span> Twitter</a>
+						{{ #if is_auth_twitter_enabled }}
+							<a href="{{ twitter_auth_path }}" class="button">Login via <span class="fa fa-twitter"></span> Twitter</a>
+						{{ /if }}
+
+						{{ #if is_auth_passwordless_enabled }}
+							<a href="{{ passwordless_auth_path }}" class="button">Login via <span class="fa fa-lock"></span> Email</a>
+						{{ /if }}
 					{{ /if }}
 				</ul>
 			</div>

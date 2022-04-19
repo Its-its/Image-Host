@@ -55,11 +55,18 @@ async fn index(
 ) -> Result<HttpResponse> {
 	let is_logged_in = identity.identity().is_some();
 
+	let config = config.read()?;
+
 	let body = hb.render(
 		"home",
 		&json!({
-			"title": config.read()?.website.title,
-			"is_logged_in": is_logged_in
+			"title": config.website.title,
+			"is_logged_in": is_logged_in,
+
+			"is_auth_twitter_enabled": config.auth.twitter.enabled,
+			"twitter_auth_path": config.auth.twitter.auth_path,
+			"is_auth_passwordless_enabled": config.auth.passwordless.enabled,
+			"passwordless_auth_path": config.auth.passwordless.auth_path,
 		}),
 	)?;
 
