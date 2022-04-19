@@ -119,8 +119,11 @@ impl Service {
 	) -> Result<SlimImage> {
 		let collection = db::get_images_collection();
 
-		let file_name = upload_data.get_file_name(self.icon_sub_directory == self.image_sub_directory, words, &collection)
-			.await?;
+		let file_name = upload_data.get_file_name(
+			self.icon_sub_directory == self.image_sub_directory,
+			words,
+			&collection
+		).await?;
 
 		let size_original = upload_data.file_data.len() as i64;
 
@@ -165,7 +168,7 @@ impl Service {
 		let new_image = model::Image {
 			id: None,
 
-			file_type: file_name.format().to_string(),
+			file_type: file_name.format_name()?.to_string(),
 			name: file_name.name,
 
 			size_original,
@@ -199,7 +202,7 @@ impl Service {
 		{
 			// Image Upload
 			let mut path = self.image_sub_directory.clone();
-			path.push(file_name.as_filename());
+			path.push(file_name.as_filename()?);
 
 			try_hide_file_multi(path.to_str().unwrap(), &auth, &self.bucket_id).await?;
 		}
@@ -477,9 +480,9 @@ pub struct JsonErrorStruct {
 
 pub fn encode_file_name(file_name: &str) -> String {
 	let mut file_name = file_name
-		.replace("\\", "/")
+		.replace('\\', "/")
 		.replace("//", "--")
-		.replace(" ", "%20");
+		.replace(' ', "%20");
 
 	if file_name.starts_with('/') {
 		file_name.remove(0);

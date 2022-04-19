@@ -1,6 +1,8 @@
+use std::borrow::Borrow;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
+use actix_web::error::ErrorNotAcceptable;
 use mime::{Mime, GIF, JPEG, PNG};
 use rand::distributions::Alphanumeric;
 use rand::prelude::{Rng, ThreadRng};
@@ -49,77 +51,57 @@ lazy_static! {
 #[derive(Debug, Clone)]
 pub struct Filename {
 	pub name: String,
-	format: Option<String>,
+	pub format: Option<Mime>,
 }
 
 impl Filename {
-	pub fn new(name: String) -> Self {
-		Self { name, format: None }
-	}
+	pub fn new(name: String, format: Option<String>) -> Result<Self> {
+		let this = Self { name, format: None };
 
-	pub fn into_name(self) -> String {
-		self.name
-	}
-
-	pub fn is_accepted(&self) -> bool {
-		self.format.is_some() && self.format() != "error"
-	}
-
-	pub fn format(&self) -> &str {
-		match self.mime_format().as_ref().map(|f| f.subtype()) {
-			Some(GIF) => "gif",
-			Some(PNG) => "png",
-			Some(JPEG) => "jpeg",
-			_ => "error",
+		if let Some(format) = format {
+			this.set_format(format)
+		} else {
+			Ok(this)
 		}
 	}
 
-	pub fn mime_format(&self) -> Option<Mime> {
-		self.format.as_ref().and_then(|i| i.parse().ok())
-	}
-
-	pub fn set_format(mut self, format: String) -> Self {
-		self.format = Some(format);
-		self
-	}
-
-	pub fn as_filename(&self) -> String {
-		format!("{}.{}", self.name, self.format())
-	}
-}
-
-// TODO: Change to Parse
-impl From<&str> for Filename {
-	fn from(file: &str) -> Self {
-		let mut split = file.rsplitn(2, '.');
-
-		let mut format = split.next();
-
-		let name = split.next().or_else(|| format.take()).unwrap();
-
-		Self {
-			name: name.to_string(),
-			format: format.map(|v| format!("image/{}", v)),
+	pub fn format_name(&self) -> Result<&str> {
+		match self.format.as_ref().map(|v| v.subtype()) {
+			Some(GIF) => Ok("gif"),
+			Some(PNG) => Ok("png"),
+			Some(JPEG) => Ok("jpeg"),
+			_ => Err(ErrorNotAcceptable("Invalid file format. Expected gif, png, or jpeg.").into())
 		}
 	}
-}
 
-impl From<String> for Filename {
-	fn from(file: String) -> Self {
-		let mut split = file.rsplitn(2, '.');
-
-		let mut format = split.next();
-
-		let name = split.next().or_else(|| format.take()).unwrap();
-
-		Self {
-			name: name.to_string(),
-			format: format.map(|s| format!("image/{}", s)),
+	pub fn set_format(mut self, format: String) -> Result<Self> {
+		if let Some(format) = format.parse().ok().filter(Self::is_valid_format) {
+			self.format = Some(format);
+			Ok(self)
+		} else {
+			Err(ErrorNotAcceptable("Invalid file format. Expected gif, png, or jpeg.").into())
 		}
+	}
+
+	pub fn as_filename(&self) -> Result<String> {
+		Ok(format!("{}.{}", self.name, self.format_name()?))
+	}
+
+	pub fn is_format<B: Borrow<Mime>>(&self, mime: B) -> bool {
+		if let Some(format) = self.format.as_ref() {
+			format == mime.borrow()
+		} else {
+			false
+		}
+	}
+
+	fn is_valid_format(value: &Mime) -> bool {
+		matches!(value.subtype(), GIF | PNG | JPEG)
 	}
 }
 
-#[derive(Debug, Clone)]
+
+#[derive(Debug, Default, Clone)]
 pub struct WordManager {
 	pub rng: ThreadRng,
 }
@@ -130,8 +112,11 @@ impl WordManager {
 		image_icon_same_dir: bool,
 		collection: &ImagesCollection,
 	) -> Result<Filename> {
-		self.loop_and_check_model_db(|rng| get_next_filename_unchecked(rng), image_icon_same_dir, collection)
-			.await
+		self.loop_and_check_model_db(
+			get_next_filename_unchecked,
+			image_icon_same_dir,
+			collection
+		).await
 	}
 
 	pub async fn get_next_filename_sized_8(
@@ -140,11 +125,10 @@ impl WordManager {
 		collection: &ImagesCollection,
 	) -> Result<Filename> {
 		self.loop_and_check_model_db(
-			|rng| Filename::new(gen_sample_alphanumeric(8, rng)),
+			|rng| Filename::new(gen_sample_alphanumeric(8, rng), None),
 			image_icon_same_dir,
 			collection,
-		)
-		.await
+		).await
 	}
 
 	pub async fn get_next_filename_sized_32(
@@ -153,21 +137,20 @@ impl WordManager {
 		collection: &ImagesCollection,
 	) -> Result<Filename> {
 		self.loop_and_check_model_db(
-			|rng| Filename::new(gen_sample_alphanumeric(32, rng)),
+			|rng| Filename::new(gen_sample_alphanumeric(32, rng), None),
 			image_icon_same_dir,
 			collection,
-		)
-		.await
+		).await
 	}
 
 	async fn loop_and_check_model_db(
 		&mut self,
-		func: impl Fn(&mut ThreadRng) -> Filename,
+		func: impl Fn(&mut ThreadRng) -> Result<Filename>,
 		image_icon_same_dir: bool,
 		collection: &ImagesCollection,
 	) -> Result<Filename> {
 		loop {
-			let mut file_name = func(&mut self.rng);
+			let mut file_name = func(&mut self.rng)?;
 
 			// Correct lowercase "i" in image names IF they're going to be in the same directory.
 			if image_icon_same_dir && file_name.name.as_bytes()[0] == b'i' {
@@ -181,15 +164,8 @@ impl WordManager {
 	}
 }
 
-impl Default for WordManager {
-	fn default() -> Self {
-		Self {
-			rng: ThreadRng::default(),
-		}
-	}
-}
 
-pub fn get_next_filename_unchecked(rng: &mut ThreadRng) -> Filename {
+pub fn get_next_filename_unchecked(rng: &mut ThreadRng) -> Result<Filename> {
 	let prefix_pos = rng.gen_range(0..PREFIXES.len());
 	let suffix_pos = rng.gen_range(0..SUFFIXES.len());
 
@@ -200,7 +176,7 @@ pub fn get_next_filename_unchecked(rng: &mut ThreadRng) -> Filename {
 		gen_three_numbers(rng)
 	);
 
-	Filename::new(filename)
+	Filename::new(filename, None)
 }
 
 pub fn gen_three_numbers(rng: &mut ThreadRng) -> String {

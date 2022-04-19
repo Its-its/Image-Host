@@ -22,7 +22,7 @@ use mongodb::bson::{doc, Document};
 
 use crate::config::Config;
 use crate::db::get_users_collection;
-use crate::db::model::{find_user_by_id, SlimUser};
+use crate::db::model::{find_user_by_id, SlimUser, UserId};
 use crate::upload::UploadProcessData;
 use crate::upload::image::UploadImageType;
 use crate::upload::service::Service;
@@ -188,7 +188,7 @@ async fn remove_image(
 		.await?;
 
 	if let Some(image) = res {
-		let file_name = image.get_file_name();
+		let file_name = image.get_file_name()?;
 
 		service.hide_file(file_name).await?;
 
@@ -289,7 +289,7 @@ async fn upload(
 	};
 
 	let user = match uid {
-		Some(user_id) => match find_user_by_id(user_id, &get_users_collection()).await? {
+		Some(user_id) => match find_user_by_id(UserId::UniqueId(user_id), &get_users_collection()).await? {
 			Some(v) => v,
 			None => {
 				let base_url = config.read()?.website.http_base_host.clone();

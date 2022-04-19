@@ -120,7 +120,7 @@ pub async fn process_image_and_create_icon(
 	let image_data = compress_if_enabled(file_name, image_data, image, config)?;
 
 	Ok(FileData {
-		image_name: file_name.as_filename(),
+		image_name: file_name.as_filename()?,
 		image_data,
 
 		icon_name: format!("{}.png", file_name.name),

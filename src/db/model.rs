@@ -131,8 +131,8 @@ pub async fn find_user_by_id<I: Into<UserId>>(
 	match user_id.into() {
 		UserId::Id(user_id) => Ok(collection.find_one(doc! { "_id": user_id }, None).await?),
 
-		UserId::UniqueId(user_id) => Ok(collection
-			.find_one(doc! { "data.unique_id": user_id }, None)
+		UserId::UniqueId(unique_id) => Ok(collection
+			.find_one(doc! { "unique_id": unique_id }, None)
 			.await?),
 	}
 }
@@ -221,8 +221,8 @@ pub struct Image {
 }
 
 impl Image {
-	pub fn get_file_name(&self) -> Filename {
-		Filename::new(self.name.clone()).set_format(self.file_type.clone())
+	pub fn get_file_name(&self) -> Result<Filename> {
+		Filename::new(self.name.clone(), Some(self.file_type.clone()))
 	}
 
 	pub async fn upload(&self, collection: &ImagesCollection) -> Result<InsertOneResult> {

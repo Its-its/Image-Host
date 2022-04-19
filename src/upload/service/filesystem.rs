@@ -82,7 +82,7 @@ impl Service {
 
 		Ok(SlimImage {
 			custom_name: None,
-			file_type: file_name.format().to_string(),
+			file_type: file_name.format_name()?.to_string(),
 			name: file_name.name,
 			size_original,
 			size_compressed,
@@ -96,7 +96,7 @@ impl Service {
 	pub async fn hide_file(&self, file_name: Filename) -> Result<()> {
 		{
 			let mut path = self.image_sub_directory.clone();
-			path.push(file_name.as_filename());
+			path.push(file_name.as_filename()?);
 
 			tokio::fs::remove_file(path).await?;
 		}
@@ -106,7 +106,7 @@ impl Service {
 			path.push(if self.image_sub_directory == self.icon_sub_directory {
 				format!("i{}", file_name.name)
 			} else {
-				file_name.into_name()
+				file_name.name
 			});
 
 			tokio::fs::remove_file(path).await?;

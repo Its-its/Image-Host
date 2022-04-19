@@ -14,7 +14,7 @@ pub fn compress_if_enabled(file_name: &Filename, image_data: Vec<u8>, image: Dyn
 		}
 	}
 
-	if file_name.mime_format() == Some(mime::IMAGE_PNG) {
+	if file_name.is_format(mime::IMAGE_PNG) {
 		drop(image);
 
 		let new_data = oxipng::optimize_from_memory(
@@ -31,7 +31,7 @@ pub fn compress_if_enabled(file_name: &Filename, image_data: Vec<u8>, image: Dyn
 		} else {
 			Result::Ok(image_data)
 		}
-	} else if file_name.mime_format() == Some(mime::IMAGE_JPEG)
+	} else if file_name.is_format(mime::IMAGE_JPEG)
 		&& (image.color() == ColorType::Rgb8 || image.color() == ColorType::Rgb16)
 	{
 		drop(image);
@@ -84,7 +84,7 @@ pub fn compress_if_enabled(file_name: &Filename, image_data: Vec<u8>, image: Dyn
 			}
 		}
 	} else {
-		if file_name.mime_format() == Some(mime::IMAGE_JPEG) {
+		if file_name.is_format(mime::IMAGE_JPEG) {
 			println!("Unknown JPEG Color: {:?}", image.color());
 		}
 

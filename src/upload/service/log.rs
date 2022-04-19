@@ -48,7 +48,7 @@ impl Service {
 
 		Ok(SlimImage {
 			custom_name: None,
-			file_type: file_name.format().to_string(),
+			file_type: file_name.format_name()?.to_string(),
 			name: file_name.name,
 			size_original,
 			size_compressed,
