@@ -43,6 +43,9 @@ pub struct Settings {
 	upload_type: Option<u8>,
 	unique_id: Option<String>,
 	join_date: Option<i64>,
+
+	icon_host: String,
+	image_host: String,
 }
 
 #[post("/user/settings")]
@@ -74,7 +77,7 @@ async fn update_settings(identity: Identity, data: web::Form<Settings>) -> Resul
 }
 
 #[get("/user/settings")]
-async fn get_settings(identity: Identity, _hb: HandlebarsDataService<'_>) -> Result<HttpResponse> {
+async fn get_settings(identity: Identity, _hb: HandlebarsDataService<'_>, config: ConfigDataService) -> Result<HttpResponse> {
 	let slim_user = match get_slim_user_identity(identity) {
 		Some(v) => v,
 		None => {
@@ -89,12 +92,15 @@ async fn get_settings(identity: Identity, _hb: HandlebarsDataService<'_>) -> Res
 		}
 	};
 
-	println!("{:#?}", user);
+	let config = config.read()?;
 
 	Ok(HttpResponse::Ok().json(Settings {
 		upload_type: Some(user.upload_type.to_num()),
 		unique_id: Some(user.unique_id),
 		join_date: Some(user.join_date.timestamp_millis()),
+
+		icon_host: config.website.http_icon_host.clone(),
+		image_host: config.website.http_image_host.clone(),
 	}))
 }
 

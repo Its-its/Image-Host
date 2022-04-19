@@ -197,13 +197,13 @@ $(document).ready(function() {
 
 			let img = document.createElement('img');
 			img.classList.add('img');
-			img.setAttribute('data-src', '//i.thick.at/i' + name + '.png');
+			img.setAttribute('data-src', `//${window.ICON_HOST}/i` + name + '.png');
 			img.setAttribute('align', 'center');
 			img.setAttribute('alt', 'Loading.');
 
 			img.addEventListener('click', event => {
 				if (event.shiftKey) {
-					let win = window.open(`https://i.thick.at/${name}.png`, '_blank');
+					let win = window.open(`https://${window.IMAGE_HOST}/${name}.png`, '_blank');
 					win.focus();
 				}
 			});
@@ -243,7 +243,7 @@ $(document).ready(function() {
 
 			let iBotRight = document.createElement('i');
 			iBotRight.classList.add('fa', 'fa-clipboard', 'copy');
-			iBotRight.setAttribute('data-clipboard-text', 'https://i.thick.at/' + name + '.' + type);
+			iBotRight.setAttribute('data-clipboard-text', `https://${window.IMAGE_HOST}/` + name + '.' + type);
 			iBotRight.setAttribute('aria-hidden', 'true');
 			spanBotRight.appendChild(iBotRight);
 
@@ -318,6 +318,9 @@ $(document).ready(function() {
 
 	// Get Options
 	$.get('/user/settings', function(data) {
+		window.ICON_HOST = data.icon_host;
+		window.IMAGE_HOST = data.image_host;
+
 		uploader.joinDate = new Date(data.join_date);
 		uploader.uniqueID = data.unique_id;
 		uploader.uploadType = data.upload_type;
