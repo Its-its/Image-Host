@@ -1,3 +1,5 @@
+use std::io::Cursor;
+
 use image::ImageFormat;
 
 use crate::{
@@ -114,7 +116,7 @@ pub async fn process_image_and_create_icon(
 	let image = image::load_from_memory(&image_data)?;
 	let icon = image.thumbnail_exact(128, 128);
 
-	let mut icon_data = Vec::new();
+	let mut icon_data = Cursor::new(Vec::new());
 	icon.write_to(&mut icon_data, ImageFormat::Png)?;
 
 	let image_data = compress_if_enabled(file_name, image_data, image, config)?;
@@ -124,7 +126,7 @@ pub async fn process_image_and_create_icon(
 		image_data,
 
 		icon_name: format!("{}.png", file_name.name),
-		icon_data,
+		icon_data: icon_data.into_inner(),
 	})
 }
 

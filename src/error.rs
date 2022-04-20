@@ -96,12 +96,6 @@ pub enum InternalError {
 
 impl ResponseError for Error {}
 
-impl From<Error> for actix_web::body::Body {
-	fn from(val: Error) -> Self {
-		actix_web::body::Body::from_message(format!("{}", val))
-	}
-}
-
 impl From<InternalError> for Error {
 	fn from(value: InternalError) -> Self {
 		Self::Internal(value)

@@ -222,7 +222,7 @@ async fn upload(
 
 	let ip_addr = req
 		.connection_info()
-		.remote_addr()
+		.peer_addr()
 		.map_or_else(String::new, |c| c.to_string());
 
 	// TODO: Properly stream.
@@ -234,7 +234,7 @@ async fn upload(
 	let mut file_type = None;
 
 	while let Some(field) = multipart.try_next().await? {
-		let disp = field.content_disposition().unwrap();
+		let disp = field.content_disposition();
 
 		if disp.is_form_data() {
 			match disp.get_name() {
@@ -463,7 +463,7 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 			web::scope("")
 				.guard(guard::fn_guard(move |req| {
 					(|| -> Option<bool> {
-						let host = req.headers().get(header::HOST)?;
+						let host = req.head().headers().get(header::HOST)?;
 						Some(host == base_url_with_www)
 					})()
 					.unwrap_or_default()
@@ -471,9 +471,12 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 				.route(
 					"",
 					web::to(move || {
-						HttpResponse::PermanentRedirect()
-							.append_header((header::LOCATION, &base_url_non_www_2))
-							.finish()
+						// TODO: I don't like this clone()
+						let new_loc = base_url_non_www_2.clone();
+
+						async move {
+							HttpResponse::PermanentRedirect().append_header((header::LOCATION, new_loc)).finish()
+						}
 					}),
 				),
 		)
@@ -482,7 +485,7 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 			let scope = web::scope("")
 				.guard(guard::fn_guard(move |req| {
 					(|| -> Option<bool> {
-						let host = req.headers().get(header::HOST)?;
+						let host = req.head().headers().get(header::HOST)?;
 						Some(host == base_url_non_www)
 					})()
 					.unwrap_or_default()
