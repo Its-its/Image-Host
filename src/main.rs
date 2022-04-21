@@ -15,6 +15,7 @@ pub use config::ConfigInner;
 pub use error::Result;
 pub use words::{Filename, WordManager};
 
+pub mod flipstore;
 pub mod auth;
 pub mod config;
 pub mod db;

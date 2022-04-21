@@ -8,12 +8,12 @@ use crypto::digest::Digest;
 use crypto::sha1::Sha1;
 use mongodb::bson::DateTime;
 use tokio::runtime::Runtime;
-use tokio::sync::RwLock;
 use tokio::time::sleep;
 
 use crate::config::ConfigServiceB2;
 use crate::db::model::{self, SlimImage};
 use crate::error::{InternalError, Result};
+use crate::flipstore::FlipStore;
 use crate::upload::UploadProcessData;
 use crate::web::{ConfigDataService, WordDataService};
 use crate::{db, Filename};
@@ -27,6 +27,7 @@ const API_URL_V2: &str = "https://api.backblazeb2.com/b2api/v2";
 // const API_URL_V1: &str = "https://api.backblazeb2.com/b2api/v1";
 
 
+#[derive(Clone)]
 struct AuthWrapper {
 	credentials: Credentials,
 	auth: B2Authorization,
@@ -44,12 +45,23 @@ impl AuthWrapper {
 
 
 lazy_static! {
-	static ref AUTH: RwLock<Option<AuthWrapper>> = RwLock::new(None);
+	static ref AUTH: FlipStore<Option<AuthWrapper>> = FlipStore::new(None);
 }
 
 
-async fn get_auth() -> B2Authorization {
-	AUTH.read().await.as_ref().unwrap().auth.clone()
+fn get_auth() -> B2Authorization {
+	AUTH.read().as_ref().unwrap().auth.clone()
+}
+
+async fn check_and_update_auth() {
+	if AUTH.read().as_ref().unwrap().last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
+		let mut wrapper = AUTH.write().unwrap();
+		let wrapper = wrapper.as_mut().unwrap();
+
+		if let Err(e) = wrapper.re_auth().await {
+			eprintln!("{}", e);
+		}
+	}
 }
 
 
@@ -82,14 +94,7 @@ impl Service {
 				thread::sleep(Duration::from_secs(30));
 
 				rt.block_on(async {
-					if AUTH.read().await.as_ref().unwrap().last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
-						let mut wrapper = AUTH.write().await;
-						let wrapper = wrapper.as_mut().unwrap();
-
-						if let Err(e) = wrapper.re_auth().await {
-							eprintln!("{}", e);
-						}
-					}
+					check_and_update_auth().await;
 				});
 			}
 		});
@@ -97,7 +102,7 @@ impl Service {
 		let credentials = Credentials::new(&config.id, &config.key);
 		let auth = credentials.authorize().await?;
 
-		*AUTH.write().await = Some(AuthWrapper {
+		*AUTH.write().unwrap() = Some(AuthWrapper {
 			credentials,
 			auth,
 			last_authed: Instant::now(),
@@ -131,7 +136,7 @@ impl Service {
 
 		let size_compressed = file_data.image_data.len() as i64;
 
-		let auth = get_auth().await;
+		let auth = get_auth();
 
 		{
 			// Image Upload
@@ -197,7 +202,7 @@ impl Service {
 	}
 
 	pub async fn hide_file(&self, file_name: Filename) -> Result<()> {
-		let auth = get_auth().await;
+		let auth = get_auth();
 
 		{
 			// Image Upload
@@ -300,6 +305,7 @@ async fn try_hide_file_multi(
 	Err(prev_error.unwrap())
 }
 
+#[derive(Clone)]
 pub struct Credentials {
 	pub id: String,
 	pub key: String,
