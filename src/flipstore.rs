@@ -112,3 +112,32 @@ impl<'a, D: Clone> Drop for FlipWriter<'a, D> {
 	}
 }
 
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn basic_simultaneous_read_write() {
+		let flipit = FlipStore::new(vec![0, 1, 2]);
+
+		let read_old = flipit.read();
+
+		// Length of 3.
+		assert_eq!(3, read_old.len());
+
+		let mut write = flipit.write().unwrap();
+		write.append(&mut vec![3, 4, 5]);
+
+		// Read should still be 3 while being written to.
+		assert_eq!(3, read_old.len());
+
+		drop(write);
+
+		// Read should still be 3 after write dropped.
+		assert_eq!(3, read_old.len());
+
+		// New read should be a length of 6 now.
+		let read_new = flipit.read();
+		assert_eq!(6, read_new.len());
+	}
+}

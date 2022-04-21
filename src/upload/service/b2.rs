@@ -48,6 +48,7 @@ lazy_static! {
 	static ref AUTH: FlipStore<Option<AuthWrapper>> = FlipStore::new(None);
 }
 
+// TODO: Use check_and_update_auth for 401 error.
 
 fn get_auth() -> B2Authorization {
 	AUTH.read().as_ref().unwrap().auth.clone()
