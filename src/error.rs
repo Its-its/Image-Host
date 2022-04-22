@@ -21,43 +21,43 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, ThisError)]
 pub enum Error {
 	#[error("Internal Error: {0}")]
-	Internal(InternalError),
+	Internal(#[from] InternalError),
 
 	#[error("Poison Error")]
 	Poisoned,
 
 	#[error("Json Error: {0}")]
-	Json(JsonError),
+	Json(#[from] JsonError),
 	#[error("Serde Value Error: {0}")]
-	SerdeValue(SerdeValueError),
-	#[error("IO Error: {0}")]
+	SerdeValue(#[from] SerdeValueError),
 
-	Io(IoError),
+	#[error("IO Error: {0}")]
+	Io(#[from] IoError),
 	#[error("HTTP Error: {0}")]
-	Http(HttpError),
+	Http(#[from] HttpError),
 	#[error("Parse Int: {0}")]
-	ParseInt(ParseIntError),
+	ParseInt(#[from] ParseIntError),
 
 	#[error("ActixWeb Error: {0}")]
-	Actix(ActixError),
+	Actix(#[from] ActixError),
 	#[error("Multipart Error: {0}")]
-	Multipart(MultipartError),
+	Multipart(#[from] MultipartError),
 	#[error("MongoDB Error: {0}")]
-	Mongodb(MongodbError),
+	Mongodb(#[from] MongodbError),
 	#[error("Image Error: {0}")]
-	Image(ImageError),
+	Image(#[from] ImageError),
 	#[error("Handlebars Error: {0}")]
-	Render(RenderError),
+	Render(#[from] RenderError),
 	#[error("Lettre Error: {0}")]
-	Lettre(LettreError),
+	Lettre(#[from] LettreError),
 	#[error("SMTP Error: {0}")]
-	Smtp(SmtpError),
+	Smtp(#[from] SmtpError),
 
 	#[error("Backblaze Error: {0}")]
-	B2(crate::upload::service::b2::JsonErrorStruct),
+	B2(#[from] crate::upload::service::b2::JsonErrorStruct),
 
 	#[error("PNG Optimize Error: {0}")]
-	Oxipng(oxipng::PngError),
+	Oxipng(#[from] oxipng::PngError),
 }
 
 #[derive(Debug, ThisError)]
@@ -95,96 +95,6 @@ pub enum InternalError {
 }
 
 impl ResponseError for Error {}
-
-impl From<InternalError> for Error {
-	fn from(value: InternalError) -> Self {
-		Self::Internal(value)
-	}
-}
-
-impl From<oxipng::PngError> for Error {
-	fn from(value: oxipng::PngError) -> Self {
-		Self::Oxipng(value)
-	}
-}
-
-impl From<ParseIntError> for Error {
-	fn from(value: ParseIntError) -> Self {
-		Self::ParseInt(value)
-	}
-}
-
-impl From<IoError> for Error {
-	fn from(value: IoError) -> Self {
-		Self::Io(value)
-	}
-}
-
-impl From<HttpError> for Error {
-	fn from(value: HttpError) -> Self {
-		Self::Http(value)
-	}
-}
-
-impl From<JsonError> for Error {
-	fn from(value: JsonError) -> Self {
-		Self::Json(value)
-	}
-}
-
-impl From<SerdeValueError> for Error {
-	fn from(value: SerdeValueError) -> Self {
-		Self::SerdeValue(value)
-	}
-}
-
-impl From<ActixError> for Error {
-	fn from(value: ActixError) -> Self {
-		Self::Actix(value)
-	}
-}
-
-impl From<MultipartError> for Error {
-	fn from(value: MultipartError) -> Self {
-		Self::Multipart(value)
-	}
-}
-
-impl From<MongodbError> for Error {
-	fn from(value: MongodbError) -> Self {
-		Self::Mongodb(value)
-	}
-}
-
-impl From<ImageError> for Error {
-	fn from(value: ImageError) -> Self {
-		Self::Image(value)
-	}
-}
-
-impl From<RenderError> for Error {
-	fn from(value: RenderError) -> Self {
-		Self::Render(value)
-	}
-}
-
-impl From<LettreError> for Error {
-	fn from(value: LettreError) -> Self {
-		Self::Lettre(value)
-	}
-}
-
-impl From<SmtpError> for Error {
-	fn from(value: SmtpError) -> Self {
-		Self::Smtp(value)
-	}
-}
-
-impl From<crate::upload::service::b2::JsonErrorStruct> for Error {
-	fn from(value: crate::upload::service::b2::JsonErrorStruct) -> Self {
-		Self::B2(value)
-	}
-}
 
 impl<V> From<PoisonError<V>> for Error {
 	fn from(_: PoisonError<V>) -> Self {
