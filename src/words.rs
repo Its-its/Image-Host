@@ -13,6 +13,11 @@ use crate::Result;
 
 pub static APP_PATH: &str = "./app";
 
+fn correct_line(value: String) -> String {
+	// TODO: Replace ALL invalid charizards.
+	value.trim().replace(' ', "")
+}
+
 lazy_static! {
 	pub static ref PREFIXES: Vec<String> = {
 		let mut items: Vec<String> = Vec::new();
@@ -25,23 +30,24 @@ lazy_static! {
 			let file = File::open(entry.unwrap().path()).unwrap();
 			let reader = BufReader::new(file);
 
-			items.extend(reader.lines().map(|l| l.unwrap()));
+			items.extend(reader.lines().filter_map(|l| Some(correct_line(l.ok()?))));
 		}
 
 		items
 	};
+
 	pub static ref SUFFIXES: Vec<String> = {
 		let mut items: Vec<String> = Vec::new();
 
-		let prefix_dir = format!("{}/suffixes", APP_PATH);
+		let suffix_dir = format!("{}/suffixes", APP_PATH);
 
-		let files = std::fs::read_dir(prefix_dir).expect("reading prefix dir");
+		let files = std::fs::read_dir(suffix_dir).expect("reading suffix dir");
 
 		for entry in files {
 			let file = File::open(entry.unwrap().path()).unwrap();
 			let reader = BufReader::new(file);
 
-			items.extend(reader.lines().map(|l| l.unwrap()));
+			items.extend(reader.lines().filter_map(|l| Some(correct_line(l.ok()?))));
 		}
 
 		items
