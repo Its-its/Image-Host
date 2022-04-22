@@ -1,3 +1,8 @@
+#![deny(
+	clippy::expect_used,
+	// clippy::unwrap_used
+)]
+
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]

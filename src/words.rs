@@ -24,6 +24,7 @@ lazy_static! {
 
 		let prefix_dir = format!("{}/prefixes", APP_PATH);
 
+		#[allow(clippy::expect_used)]
 		let files = std::fs::read_dir(prefix_dir).expect("reading prefix dir");
 
 		for entry in files {
@@ -41,6 +42,7 @@ lazy_static! {
 
 		let suffix_dir = format!("{}/suffixes", APP_PATH);
 
+		#[allow(clippy::expect_used)]
 		let files = std::fs::read_dir(suffix_dir).expect("reading suffix dir");
 
 		for entry in files {

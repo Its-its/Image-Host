@@ -98,8 +98,7 @@ pub async fn get_twitter_oauth_callback(
 				&auth_verify.oauth_token_secret,
 				&oauth_verifier,
 			)
-			.await
-			.expect("access_token");
+			.await?;
 
 		let user = twapi::UserAuth::new(
 			&config.auth.twitter.consumer_key,
@@ -110,8 +109,7 @@ pub async fn get_twitter_oauth_callback(
 
 		let resp = user
 			.get_verify_credentials(&Vec::new())
-			.await
-			.expect("get_verify_credentials");
+			.await?;
 
 		if resp.status_code == 200 {
 			let profile: VerifyCredentials = serde_json::from_value(resp.json.unwrap())?;

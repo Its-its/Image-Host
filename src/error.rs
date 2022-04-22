@@ -10,6 +10,7 @@ use mongodb::error::Error as MongodbError;
 use reqwest::Error as HttpError;
 use serde_json::Error as JsonError;
 use serde::de::value::Error as SerdeValueError;
+use twapi::TwapiError;
 use std::io::Error as IoError;
 
 use actix_multipart::MultipartError;
@@ -55,6 +56,8 @@ pub enum Error {
 	Lettre(#[from] LettreError),
 	#[error("SMTP Error: {0}")]
 	Smtp(#[from] SmtpError),
+	#[error("TwApi Error: {0}")]
+	TwApi(String),
 
 	#[error("Backblaze Error: {0}")]
 	B2(#[from] crate::upload::service::b2::JsonErrorStruct),
@@ -102,6 +105,12 @@ impl ResponseError for Error {}
 impl<V> From<PoisonError<V>> for Error {
 	fn from(_: PoisonError<V>) -> Self {
 		Self::Poisoned
+	}
+}
+
+impl From<TwapiError> for Error {
+	fn from(v: TwapiError) -> Self {
+		Self::TwApi(format!("{:?}", v))
 	}
 }
 
