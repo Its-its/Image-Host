@@ -44,8 +44,8 @@ pub struct Settings {
 	unique_id: Option<String>,
 	join_date: Option<i64>,
 
-	icon_host: String,
-	image_host: String,
+	icon_host: Option<String>,
+	image_host: Option<String>,
 }
 
 #[post("/user/settings")]
@@ -99,8 +99,8 @@ async fn get_settings(identity: Identity, _hb: HandlebarsDataService<'_>, config
 		unique_id: Some(user.unique_id),
 		join_date: Some(user.join_date.timestamp_millis()),
 
-		icon_host: config.website.http_icon_host.clone(),
-		image_host: config.website.http_image_host.clone(),
+		icon_host: Some(config.website.http_icon_host.clone()),
+		image_host: Some(config.website.http_image_host.clone()),
 	}))
 }
 
