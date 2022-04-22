@@ -23,6 +23,9 @@ pub enum Error {
 	#[error("Internal Error: {0}")]
 	Internal(#[from] InternalError),
 
+	#[error("Internal DateTime Error: {0}")]
+	DateTime(#[from] DateTimeError),
+
 	#[error("Poison Error")]
 	Poisoned,
 
@@ -100,4 +103,21 @@ impl<V> From<PoisonError<V>> for Error {
 	fn from(_: PoisonError<V>) -> Self {
 		Self::Poisoned
 	}
+}
+
+
+#[derive(Debug, ThisError)]
+pub enum DateTimeError {
+	#[error("Invalid Year {0}")]
+	InvalidYear(u32),
+	#[error("Invalid Month {0}")]
+	InvalidMonth(u32),
+	#[error("Invalid Day {0}")]
+	InvalidDay(u32),
+	#[error("Invalid Hour {0}")]
+	InvalidHour(u32),
+	#[error("Invalid Minute {0}")]
+	InvalidMinute(u32),
+	#[error("Invalid Second {0}")]
+	InvalidSecond(u32),
 }

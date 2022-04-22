@@ -7,7 +7,7 @@ use mongodb::{
 };
 use rand::prelude::ThreadRng;
 
-use crate::{error::Result, upload::image::UploadImageType, words, Filename};
+use crate::{error::{Result, DateTimeError}, upload::image::UploadImageType, words, Filename};
 
 use super::{get_users_collection, AuthCollection, GalleryCollection, ImagesCollection, UsersCollection};
 
@@ -529,8 +529,9 @@ pub async fn find_images_by_date<I: Into<UserId>>(
 	collection: &ImagesCollection,
 ) -> Result<Cursor<Image>> {
 	let naive_cm =
-		NaiveDate::from_ymd(f_year as i32, f_month, 1).and_time(NaiveTime::from_hms(0, 0, 0));
-	let naive_nm = to_end_of_month_with_hours(naive_cm);
+		NaiveDate::from_ymd(f_year as i32, f_month, 1)
+		.and_time(NaiveTime::from_hms(0, 0, 0));
+	let naive_nm = to_end_of_month_with_hours(naive_cm)?;
 
 	match f_id.into() {
 		UserId::Id(f_id) => {
@@ -569,43 +570,54 @@ pub async fn find_images_by_date<I: Into<UserId>>(
 
 // Util
 
-// TODO: Remove panics.
-
-pub fn to_next_month(current_month: NaiveDateTime) -> NaiveDateTime {
+pub fn to_next_month(current_month: NaiveDateTime) -> Result<NaiveDateTime> {
 	if current_month.month() == 12 {
-		current_month
-			.with_month(1)
-			.unwrap()
-			.with_year(current_month.year() + 1)
-			.unwrap()
+		Ok(
+			current_month
+				.with_month(1)
+				.ok_or(DateTimeError::InvalidMonth(1))?
+				.with_year(current_month.year() + 1)
+				.ok_or_else(|| DateTimeError::InvalidYear((current_month.year() + 1) as u32))?
+		)
 	} else {
-		current_month.with_month(current_month.month() + 1).unwrap()
+		Ok(
+			current_month.with_month(current_month.month() + 1)
+				.ok_or_else(|| DateTimeError::InvalidMonth(current_month.month() + 1))?
+		)
 	}
 }
 
-pub fn to_end_of_month_with_hours(current_month: NaiveDateTime) -> NaiveDateTime {
+pub fn to_end_of_month_with_hours(current_month: NaiveDateTime) -> Result<NaiveDateTime> {
 	// current_month = 2021-06-01T00:00:00
 
-	let days_in_month = days_in_month(current_month);
+	let days_in_month = days_in_month(current_month)?;
 
-	current_month
-		.with_day(days_in_month as u32)
-		.expect("unable to inc days")
-		.with_hour(23)
-		.expect("unable to inc hours")
-		.with_minute(59)
-		.expect("unable to inc minutes")
-		.with_second(59)
-		.expect("unable to inc seconds")
+	Ok(
+		current_month
+			.with_day(days_in_month)
+			.ok_or(DateTimeError::InvalidDay(days_in_month))?
+			.with_hour(23)
+			.ok_or(DateTimeError::InvalidHour(days_in_month))?
+			.with_minute(59)
+			.ok_or(DateTimeError::InvalidMinute(days_in_month))?
+			.with_second(59)
+			.ok_or(DateTimeError::InvalidSecond(days_in_month))?
+	)
 }
 
-pub fn days_in_month(current_month: NaiveDateTime) -> i64 {
-	to_next_month(current_month)
-		.signed_duration_since(current_month)
-		.num_days()
+pub fn days_in_month(current_month: NaiveDateTime) -> Result<u32> {
+	Ok(
+		to_next_month(current_month)?
+			.signed_duration_since(current_month)
+			.num_days() as u32
+	)
 }
 
-pub fn to_end_of_month(current_month: NaiveDateTime) -> NaiveDateTime {
-	let days_in_month = days_in_month(current_month);
-	current_month.with_day(days_in_month as u32).unwrap()
+pub fn to_end_of_month(current_month: NaiveDateTime) -> Result<NaiveDateTime> {
+	let days_in_month = days_in_month(current_month)?;
+
+	Ok(
+		current_month.with_day(days_in_month)
+			.ok_or(DateTimeError::InvalidDay(days_in_month))?
+	)
 }
