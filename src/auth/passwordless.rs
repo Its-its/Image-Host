@@ -17,6 +17,7 @@ use mongodb::options::{Collation, CollationStrength, FindOneOptions};
 use crate::config::{Config, ConfigEmail};
 use crate::db::model::{NewUser, UserPasswordless, create_auth_verify, find_and_remove_auth_verify};
 use crate::db::{get_auth_collection, get_collection, get_users_collection, CollectionType};
+use crate::error::{InternalError, Error};
 use crate::upload::image::UploadImageType;
 use crate::web::{ConfigDataService, HandlebarsDataService, remember_identity};
 use crate::words::{gen_sample_alphanumeric, gen_uuid};
@@ -178,7 +179,9 @@ pub async fn get_passwordless_oauth_callback(
 				.insert_one(mongodb::bson::to_document(&new_user)?, None)
 				.await?;
 
-			new_user.into_user(inserted.inserted_id.as_object_id().unwrap())
+			new_user.into_user(
+				inserted.inserted_id.as_object_id().ok_or_else(|| Error::from(InternalError::MissingObjectId))?
+			)
 		};
 
 		remember_identity(&identity, user)?;

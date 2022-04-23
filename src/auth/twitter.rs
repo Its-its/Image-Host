@@ -8,6 +8,7 @@ use twapi::{oauth1::request_token, Twapi};
 use crate::config::Config;
 use crate::db::model::{create_auth_verify, find_and_remove_auth_verify, NewUser, UserTwitter};
 use crate::db::{get_auth_collection, get_collection, get_users_collection, CollectionType};
+use crate::error::{Error, InternalError};
 use crate::upload::image::UploadImageType;
 use crate::web::{ConfigDataService, remember_identity};
 use crate::words::gen_uuid;
@@ -145,7 +146,7 @@ pub async fn get_twitter_oauth_callback(
 					.insert_one(mongodb::bson::to_document(&new_user)?, None)
 					.await?;
 
-				new_user.into_user(inserted.inserted_id.as_object_id().unwrap())
+				new_user.into_user(inserted.inserted_id.as_object_id().ok_or_else(|| Error::from(InternalError::MissingObjectId))?)
 			};
 
 			remember_identity(&identity, user)?;

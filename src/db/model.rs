@@ -7,7 +7,7 @@ use mongodb::{
 };
 use rand::prelude::ThreadRng;
 
-use crate::{error::{Result, DateTimeError, InternalError}, upload::image::UploadImageType, words, Filename};
+use crate::{error::{Result, DateTimeError, InternalError, Error}, upload::image::UploadImageType, words, Filename};
 
 use super::{get_users_collection, AuthCollection, GalleryCollection, ImagesCollection, UsersCollection};
 
@@ -234,14 +234,14 @@ impl Image {
 
 	pub async fn delete_document(self, collection: &ImagesCollection) -> Result<DeleteResult> {
 		Ok(collection
-			.delete_one(doc! { "_id": self.id.unwrap() }, None)
+			.delete_one(doc! { "_id": self.id.ok_or_else(|| Error::from(InternalError::MissingObjectId))? }, None)
 			.await?)
 	}
 
 	pub async fn delete_request(self, collection: &ImagesCollection) -> Result<UpdateResult> {
 		Ok(collection
 			.update_one(
-				doc! { "_id": self.id.unwrap() },
+				doc! { "_id": self.id.ok_or_else(|| Error::from(InternalError::MissingObjectId))? },
 				doc! {
 					"$set": {
 						"deleted": DateTime::now()
@@ -255,7 +255,7 @@ impl Image {
 	pub async fn restore_request(self, collection: &ImagesCollection) -> Result<UpdateResult> {
 		Ok(collection
 			.update_one(
-				doc! { "_id": self.id.unwrap() },
+				doc! { "_id": self.id.ok_or_else(|| Error::from(InternalError::MissingObjectId))? },
 				doc! {
 					"$unset": {
 						"deleted": ""
@@ -340,14 +340,16 @@ pub struct Gallery {
 }
 
 impl Gallery {
-	pub fn add_image(&mut self, image: Image) {
+	pub fn add_image(&mut self, image: Image) -> Result<()> {
 		self.images.push(GalleryImage {
-			id: image.id.unwrap(),
+			id: image.id.ok_or_else(|| Error::from(InternalError::MissingObjectId))?,
 			index: self.indexed,
 			description: None,
 		});
 
 		self.indexed += 1;
+
+		Ok(())
 	}
 
 	pub async fn update(self, collection: &GalleryCollection) -> Result<UpdateResult> {
@@ -368,7 +370,7 @@ impl Gallery {
 
 		Ok(collection
 			.update_one(
-				doc! { "_id": self.id.unwrap() },
+				doc! { "_id": self.id.ok_or_else(|| Error::from(InternalError::MissingObjectId))? },
 				doc! {
 					"$set": doc
 				},
@@ -379,7 +381,7 @@ impl Gallery {
 
 	pub async fn delete(self, collection: &GalleryCollection) -> Result<DeleteResult> {
 		Ok(collection
-			.delete_one(doc! { "_id": self.id.unwrap() }, None)
+			.delete_one(doc! { "_id": self.id.ok_or_else(|| Error::from(InternalError::MissingObjectId))? }, None)
 			.await?)
 	}
 }

@@ -163,7 +163,7 @@ async fn gallery_update(
 					.iter()
 					.any(|v| &v.id == image.id.as_ref().unwrap())
 				{
-					gallery.add_image(image);
+					gallery.add_image(image)?;
 				}
 			}
 		}

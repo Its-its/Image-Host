@@ -134,6 +134,9 @@ pub enum InternalError {
 
 	#[error("Unable to convert PathBuf to String")]
 	ConvertPathBufToString,
+
+	#[error("Missing Wanted ObjectId")]
+	MissingObjectId,
 }
 
 impl ResponseError for Error {}
