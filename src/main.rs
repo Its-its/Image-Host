@@ -3,6 +3,11 @@
 	clippy::unwrap_used,
 )]
 
+#![warn(
+	clippy::unimplemented,
+	clippy::todo,
+)]
+
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]

@@ -51,10 +51,12 @@ lazy_static! {
 // TODO: Use check_and_update_auth for 401 error.
 
 fn get_auth() -> Result<B2Authorization> {
+	#[allow(clippy::unwrap_used)]
 	Ok(AUTH.read().as_ref().unwrap().auth.clone())
 }
 
 async fn check_and_update_auth() -> Result<()> {
+	#[allow(clippy::unwrap_used)]
 	if AUTH.read().as_ref().unwrap().last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
 		let mut wrapper = AUTH.write()?;
 		let wrapper = wrapper.as_mut().unwrap();
@@ -273,6 +275,7 @@ async fn upload_file_multi_try(
 		return Ok(());
 	}
 
+	#[allow(clippy::unwrap_used)]
 	Err(prev_error.unwrap())
 }
 
@@ -308,6 +311,7 @@ async fn try_hide_file_multi(
 		return Ok(());
 	}
 
+	#[allow(clippy::unwrap_used)]
 	Err(prev_error.unwrap())
 }
 

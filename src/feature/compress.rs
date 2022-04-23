@@ -45,8 +45,8 @@ pub fn compress_if_enabled(file_name: &Filename, image_data: Vec<u8>, image: Dyn
 						d.height(),
 						d.read_scanlines::<[u8; 3]>().ok_or_else(|| Error::from(InternalError::MozJpegScanLines))?,
 					),
-					mozjpeg::Format::Gray(_) => unimplemented!(),
-					mozjpeg::Format::CMYK(_) => unimplemented!(),
+					mozjpeg::Format::Gray(_) => return Result::Err(InternalError::MozJpegUnimplementedFormat.into()),
+					mozjpeg::Format::CMYK(_) => return Result::Err(InternalError::MozJpegUnimplementedFormat.into()),
 				};
 
 			// Re-encode it.

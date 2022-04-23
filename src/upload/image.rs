@@ -69,6 +69,8 @@ impl<'de> Deserialize<'de> for UploadImageType {
 	where
 		D: Deserializer<'de>,
 	{
+		// TODO: Make sure can't panic.
+		#[allow(clippy::unwrap_used)]
 		Ok(Self::from_num(i32::deserialize(deserializer)? as u8).unwrap())
 	}
 }

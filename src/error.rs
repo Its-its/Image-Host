@@ -127,6 +127,9 @@ pub enum InternalError {
 	#[error("An Error Occured while trying read scan lines for JPEG")]
 	MozJpegScanLines,
 
+	#[error("The Specific format is unimplemented for this JPEG")]
+	MozJpegUnimplementedFormat,
+
 	// Other
 
 	#[error("Unable to convert PathBuf to String")]
