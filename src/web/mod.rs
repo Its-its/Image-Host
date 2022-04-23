@@ -294,7 +294,7 @@ async fn upload(
 	};
 
 	let user = match uid {
-		Some(user_id) => match find_user_by_id(UserId::UniqueId(user_id), &get_users_collection()).await? {
+		Some(user_id) => match find_user_by_id(UserId::UniqueId(user_id.trim().to_string()), &get_users_collection()).await? {
 			Some(v) => v,
 			None => {
 				let base_url = config.read()?.website.http_base_host.clone();
