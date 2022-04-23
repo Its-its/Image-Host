@@ -12,7 +12,7 @@ use tokio::time::sleep;
 
 use crate::config::ConfigServiceB2;
 use crate::db::model::{self, SlimImage};
-use crate::error::{InternalError, Result};
+use crate::error::{InternalError, Result, Error};
 use crate::flipstore::FlipStore;
 use crate::upload::UploadProcessData;
 use crate::web::{ConfigDataService, WordDataService};
@@ -50,19 +50,21 @@ lazy_static! {
 
 // TODO: Use check_and_update_auth for 401 error.
 
-fn get_auth() -> B2Authorization {
-	AUTH.read().as_ref().unwrap().auth.clone()
+fn get_auth() -> Result<B2Authorization> {
+	Ok(AUTH.read().as_ref().unwrap().auth.clone())
 }
 
-async fn check_and_update_auth() {
+async fn check_and_update_auth() -> Result<()> {
 	if AUTH.read().as_ref().unwrap().last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
-		let mut wrapper = AUTH.write().unwrap();
+		let mut wrapper = AUTH.write()?;
 		let wrapper = wrapper.as_mut().unwrap();
 
 		if let Err(e) = wrapper.re_auth().await {
 			eprintln!("{}", e);
 		}
 	}
+
+	Ok(())
 }
 
 
@@ -89,13 +91,16 @@ impl Service {
 
 		// Spawn Authentication Thread.
 		thread::spawn(|| {
-			let rt = Runtime::new().unwrap();
+			#[allow(clippy::expect_used)]
+			let rt = Runtime::new().expect("Thread Auth RT");
 
 			loop {
 				thread::sleep(Duration::from_secs(30));
 
 				rt.block_on(async {
-					check_and_update_auth().await;
+					if let Err(e) = check_and_update_auth().await {
+						eprintln!("Auth Thread Error: {}", e);
+					}
 				});
 			}
 		});
@@ -103,7 +108,7 @@ impl Service {
 		let credentials = Credentials::new(&config.id, &config.key);
 		let auth = credentials.authorize().await?;
 
-		*AUTH.write().unwrap() = Some(AuthWrapper {
+		*AUTH.write()? = Some(AuthWrapper {
 			credentials,
 			auth,
 			last_authed: Instant::now(),
@@ -137,7 +142,7 @@ impl Service {
 
 		let size_compressed = file_data.image_data.len() as i64;
 
-		let auth = get_auth();
+		let auth = get_auth()?;
 
 		{
 			// Image Upload
@@ -145,7 +150,7 @@ impl Service {
 			path.push(file_data.image_name);
 
 			upload_file_multi_try(
-				path.to_str().unwrap(),
+				path.to_str().ok_or_else(|| Error::from(InternalError::ConvertPathBufToString))?,
 				file_data.image_data,
 				&auth,
 				&self.bucket_id,
@@ -163,7 +168,7 @@ impl Service {
 			});
 
 			upload_file_multi_try(
-				path.to_str().unwrap(),
+				path.to_str().ok_or_else(|| Error::from(InternalError::ConvertPathBufToString))?,
 				file_data.icon_data,
 				&auth,
 				&self.bucket_id,
@@ -203,14 +208,14 @@ impl Service {
 	}
 
 	pub async fn hide_file(&self, file_name: Filename) -> Result<()> {
-		let auth = get_auth();
+		let auth = get_auth()?;
 
 		{
 			// Image Upload
 			let mut path = self.image_sub_directory.clone();
 			path.push(file_name.as_filename()?);
 
-			try_hide_file_multi(path.to_str().unwrap(), &auth, &self.bucket_id).await?;
+			try_hide_file_multi(path.to_str().ok_or_else(|| Error::from(InternalError::ConvertPathBufToString))?, &auth, &self.bucket_id).await?;
 		}
 
 		{
@@ -218,7 +223,7 @@ impl Service {
 			let mut path = self.icon_sub_directory.clone();
 			path.push(format!("i{}.png", file_name.name));
 
-			try_hide_file_multi(path.to_str().unwrap(), &auth, &self.bucket_id).await?;
+			try_hide_file_multi(path.to_str().ok_or_else(|| Error::from(InternalError::ConvertPathBufToString))?, &auth, &self.bucket_id).await?;
 		}
 
 		Ok(())

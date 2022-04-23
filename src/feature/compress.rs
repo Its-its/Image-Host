@@ -2,7 +2,7 @@ use std::panic::catch_unwind;
 
 use image::{ColorType, DynamicImage};
 
-use crate::{Filename, Result, web::ConfigDataService};
+use crate::{Filename, Result, web::ConfigDataService, error::{InternalError, Error}};
 
 
 
@@ -43,7 +43,7 @@ pub fn compress_if_enabled(file_name: &Filename, image_data: Vec<u8>, image: Dyn
 					mozjpeg::Format::RGB(mut d) => (
 						d.width(),
 						d.height(),
-						d.read_scanlines::<[u8; 3]>().unwrap(),
+						d.read_scanlines::<[u8; 3]>().ok_or_else(|| Error::from(InternalError::MozJpegScanLines))?,
 					),
 					mozjpeg::Format::Gray(_) => unimplemented!(),
 					mozjpeg::Format::CMYK(_) => unimplemented!(),
@@ -66,7 +66,7 @@ pub fn compress_if_enabled(file_name: &Filename, image_data: Vec<u8>, image: Dyn
 
 			comp.finish_compress();
 
-			let new_data = comp.data_to_vec().unwrap();
+			let new_data = comp.data_to_vec().map_err(|_| Error::from(InternalError::MozJpegDataRetrive))?;
 
 			// Pick smallest image data size.
 			if new_data.len() < image_data.len() {

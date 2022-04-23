@@ -23,7 +23,7 @@ lazy_static! {
 pub async fn create_mongo_connection(config: &ConfigDatabase) -> Result<Client> {
 	let client = Client::with_uri_str(&config.url).await?;
 
-	*DATABASE.write().unwrap() = Some(client.database(&config.database));
+	*DATABASE.write()? = Some(client.database(&config.database));
 
 	create_indexes().await?;
 
@@ -103,6 +103,7 @@ pub fn get_collection<T>(value: CollectionType) -> Collection<T>
 where
 	T: serde::Serialize + serde::de::DeserializeOwned + Unpin + std::fmt::Debug,
 {
+	#[allow(clippy::unwrap_used)]
 	DATABASE
 		.read()
 		.unwrap()

@@ -121,7 +121,7 @@ async fn get_images(identity: Identity, query: web::Query<ImageQuery>) -> Result
 		}
 	};
 
-	let user = slim_user.upgrade().await?.unwrap();
+	let user = slim_user.upgrade().await?;
 
 	let mut images =
 		model::find_images_by_date(user.unique_id, query.year, query.month, &collection)

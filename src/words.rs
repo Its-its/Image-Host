@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)]
+
 use std::borrow::Borrow;
 use std::fs::File;
 use std::io::{BufRead, BufReader};

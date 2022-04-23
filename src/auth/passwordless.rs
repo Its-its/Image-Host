@@ -175,7 +175,7 @@ pub async fn get_passwordless_oauth_callback(
 			};
 
 			let inserted = get_collection(CollectionType::Users)
-				.insert_one(mongodb::bson::to_document(&new_user).unwrap(), None)
+				.insert_one(mongodb::bson::to_document(&new_user)?, None)
 				.await?;
 
 			new_user.into_user(inserted.inserted_id.as_object_id().unwrap())
@@ -193,9 +193,9 @@ pub async fn get_passwordless_oauth_callback(
 
 pub fn send_auth_email(sending_to_email: String, alt_text: String, main_html: String, email_config: &ConfigEmail) -> Result<()> {
 	let email = Message::builder()
-		.from(format!("{} <{}>", email_config.display_name, email_config.sending_email).parse().unwrap())
-		.reply_to(email_config.sending_email.parse().unwrap())
-		.to(sending_to_email.parse().unwrap())
+		.from(format!("{} <{}>", email_config.display_name, email_config.sending_email).parse()?)
+		.reply_to(email_config.sending_email.parse()?)
+		.to(sending_to_email.parse()?)
 		.subject(&email_config.subject_line)
 		.multipart(
             MultiPart::alternative() // This is composed of two parts.

@@ -9,7 +9,7 @@ use actix_web::{
 };
 use reqwest::Url;
 
-use crate::{config::Config, Result};
+use crate::{config::Config, Result, error::Error};
 
 use super::ConfigDataService;
 
@@ -19,8 +19,9 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 	image_url: String,
 	icon_url: String,
 	read: &Config,
-) -> App<T> {
-	let image_url_header = header::HeaderValue::from_str(&image_url).unwrap();
+) -> Result<App<T>> {
+	let image_url_header = header::HeaderValue::from_str(&image_url)
+		.map_err(|_| Error::ActixInvalidHeaderValue(icon_url.to_string()))?;
 
 	let image_factory = web::scope("").guard(guard::fn_guard(move |req| {
 		(|| -> Option<bool> {
@@ -30,13 +31,13 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 		.unwrap_or_default()
 	}));
 
-	if image_url == icon_url {
+	let apples = if image_url == icon_url {
 		if read.services.b2.enabled {
 			app.service(image_factory.route(
 				"/{name}",
-				web::to(move |mut name: web::Path<String>, config: ConfigDataService| {
+				web::to(|mut name: web::Path<String>, config: ConfigDataService| async move {
 					let url = {
-						let read = config.read().unwrap();
+						let read = config.read()?;
 
 						let input = if name.starts_with('i') {
 							// We don't prepend 'i' if the icon dir is different than the image one.
@@ -49,17 +50,13 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 							&read.services.b2.image_sub_directory
 						};
 
-						Url::from_str(&read.services.b2.public_url)
-							.unwrap()
-							.join(&format!("{}/{}", input, &name))
-							.unwrap()
+						Url::from_str(&read.services.b2.public_url)?
+							.join(&format!("{}/{}", input, &name))?
 					};
 
-					async {
-						match reqwest::get(url).await {
-							Ok(v) => HttpResponse::Ok().streaming(v.bytes_stream()),
-							Err(_) => HttpResponse::NotFound().finish(),
-						}
+					match reqwest::get(url).await {
+						Ok(v) => Result::Ok(HttpResponse::Ok().streaming(v.bytes_stream())),
+						Err(_) => Result::Ok(HttpResponse::NotFound().finish()),
 					}
 				}),
 			))
@@ -69,9 +66,9 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 				web::get().to(
 					|name: web::Path<String>, config: ConfigDataService, req: HttpRequest| async move {
 						if name.is_empty() {
-							HttpResponse::NotFound().finish()
+							Result::Ok(HttpResponse::NotFound().finish())
 						} else {
-							let read = config.read().unwrap();
+							let read = config.read()?;
 
 							let mut path = PathBuf::new();
 							path.push(&read.services.filesystem.upload_directory);
@@ -85,8 +82,8 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 							path.push(name.into_inner());
 
 							match NamedFile::open_async(path).await {
-								Ok(v) => v.into_response(&req),
-								Err(_) => HttpResponse::NotFound().finish(),
+								Ok(v) => Result::Ok(v.into_response(&req)),
+								Err(_) => Result::Ok(HttpResponse::NotFound().finish()),
 							}
 						}
 					},
@@ -96,41 +93,37 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 			app
 		}
 	} else {
-		async fn b2_image_route(name: web::Path<String>, config: ConfigDataService) -> HttpResponse {
+		async fn b2_image_route(name: web::Path<String>, config: ConfigDataService) -> Result<HttpResponse> {
 			let url = {
-				let read = config.read().unwrap();
+				let read = config.read()?;
 
-				Url::from_str(&read.services.b2.public_url)
-					.unwrap()
+				Url::from_str(&read.services.b2.public_url)?
 					.join(&format!(
 						"{}/{}",
 						&read.services.b2.image_sub_directory, &name
-					))
-					.unwrap()
+					))?
 			};
 
 			match reqwest::get(url).await {
-				Ok(v) => HttpResponse::Ok().streaming(v.bytes_stream()),
-				Err(_) => HttpResponse::NotFound().finish(),
+				Ok(v) => Ok(HttpResponse::Ok().streaming(v.bytes_stream())),
+				Err(_) => Ok(HttpResponse::NotFound().finish()),
 			}
 		}
 
-		async fn b2_icon_route(name: web::Path<String>, config: ConfigDataService) -> HttpResponse {
+		async fn b2_icon_route(name: web::Path<String>, config: ConfigDataService) -> Result<HttpResponse> {
 			let url = {
-				let read = config.read().unwrap();
+				let read = config.read()?;
 
-				Url::from_str(&read.services.b2.public_url)
-					.unwrap()
+				Url::from_str(&read.services.b2.public_url)?
 					.join(&format!(
 						"{}/{}",
 						&read.services.b2.icon_sub_directory, &name
-					))
-					.unwrap()
+					))?
 			};
 
 			match reqwest::get(url).await {
-				Ok(v) => HttpResponse::Ok().streaming(v.bytes_stream()),
-				Err(_) => HttpResponse::NotFound().finish(),
+				Ok(v) => Ok(HttpResponse::Ok().streaming(v.bytes_stream())),
+				Err(_) => Ok(HttpResponse::NotFound().finish()),
 			}
 		}
 
@@ -138,7 +131,7 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 			if name.is_empty() {
 				Ok(HttpResponse::NotFound().finish())
 			} else {
-				let read = config.read().unwrap();
+				let read = config.read()?;
 
 				let mut path = PathBuf::new();
 				path.push(&read.services.filesystem.upload_directory);
@@ -156,7 +149,7 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 			if name.is_empty() {
 				Ok(HttpResponse::NotFound().finish())
 			} else {
-				let read = config.read().unwrap();
+				let read = config.read()?;
 
 				let mut path = PathBuf::new();
 				path.push(&read.services.filesystem.upload_directory);
@@ -171,7 +164,8 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 		}
 
 
-		let icon_url_header = header::HeaderValue::from_str(&icon_url).unwrap();
+		let icon_url_header = header::HeaderValue::from_str(&icon_url)
+			.map_err(|_| Error::ActixInvalidHeaderValue(icon_url.to_string()))?;
 
 		let icon_factory = web::scope("").guard(guard::fn_guard(move |req| {
 			(|| -> Option<bool> {
@@ -202,5 +196,7 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 		} else {
 			app
 		}
-	}
+	};
+
+	Ok(apples)
 }

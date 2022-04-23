@@ -3,6 +3,7 @@ use std::{num::ParseIntError, sync::PoisonError};
 use thiserror::Error as ThisError;
 
 use lettre::error::Error as LettreError;
+use lettre::address::AddressError;
 use lettre::transport::smtp::Error as SmtpError;
 use handlebars::RenderError;
 use image::ImageError;
@@ -12,6 +13,8 @@ use serde_json::Error as JsonError;
 use serde::de::value::Error as SerdeValueError;
 use twapi::TwapiError;
 use std::io::Error as IoError;
+use mongodb::bson::ser::Error as BsonError;
+use url::ParseError as UrlParseError;
 
 use actix_multipart::MultipartError;
 use actix_web::Error as ActixError;
@@ -39,15 +42,21 @@ pub enum Error {
 	Io(#[from] IoError),
 	#[error("HTTP Error: {0}")]
 	Http(#[from] HttpError),
-	#[error("Parse Int: {0}")]
+	#[error("Parse Int Error: {0}")]
 	ParseInt(#[from] ParseIntError),
+	#[error("Url Parse Error: {0}")]
+	UrlParse(#[from] UrlParseError),
 
+	#[error("Actix Invalid Header Error: {0}")]
+	ActixInvalidHeaderValue(String),
 	#[error("ActixWeb Error: {0}")]
 	Actix(#[from] ActixError),
 	#[error("Multipart Error: {0}")]
 	Multipart(#[from] MultipartError),
 	#[error("MongoDB Error: {0}")]
 	Mongodb(#[from] MongodbError),
+	#[error("Bson Error: {0}")]
+	Bson(#[from] BsonError),
 	#[error("Image Error: {0}")]
 	Image(#[from] ImageError),
 	#[error("Handlebars Error: {0}")]
@@ -56,6 +65,8 @@ pub enum Error {
 	Lettre(#[from] LettreError),
 	#[error("SMTP Error: {0}")]
 	Smtp(#[from] SmtpError),
+	#[error("Address Error: {0}")]
+	Address(#[from] AddressError),
 	#[error("TwApi Error: {0}")]
 	TwApi(String),
 
@@ -68,6 +79,8 @@ pub enum Error {
 
 #[derive(Debug, ThisError)]
 pub enum InternalError {
+	// Backblaze
+
 	#[error("Backblaze B2 Authorization Error.")]
 	B2Authorization,
 	#[error("Backblaze B2 Get Upload Url Error.")]
@@ -75,14 +88,21 @@ pub enum InternalError {
 	#[error("Backblaze B2 Upload File Error.")]
 	B2UploadFile,
 
+	// Actix
+
 	#[error("The Upload Size is Too Large")]
 	UploadSizeTooLarge,
 
 	#[error("The UID is Too Large")]
 	UidSizeTooLarge,
 
+	#[error("The user does not exist")]
+	UserMissing,
+
 	#[error("The File Type is Too Large")]
 	FileTypeTooLarge,
+
+	// Image / Gallery
 
 	#[error("Max Galleries")]
 	MaxGalleries,
@@ -96,8 +116,21 @@ pub enum InternalError {
 	#[error("Gallery Does Not Exist")]
 	GalleryDoesNotExist,
 
+	// JPEG
+
 	#[error("An Error Occured while trying to Optimize JPEG Image")]
 	MozJpegError,
+
+	#[error("An Error Occured while trying retrieve JPEG Data")]
+	MozJpegDataRetrive,
+
+	#[error("An Error Occured while trying read scan lines for JPEG")]
+	MozJpegScanLines,
+
+	// Other
+
+	#[error("Unable to convert PathBuf to String")]
+	ConvertPathBufToString,
 }
 
 impl ResponseError for Error {}

@@ -1,6 +1,6 @@
-#![deny(
+#![warn(
 	clippy::expect_used,
-	// clippy::unwrap_used
+	clippy::unwrap_used,
 )]
 
 #[macro_use]

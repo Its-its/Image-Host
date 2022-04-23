@@ -1,3 +1,8 @@
+#![allow(
+	clippy::expect_used,
+	clippy::unwrap_used,
+)]
+
 use std::sync::RwLock;
 use std::{convert::TryInto, sync::Mutex};
 
@@ -304,7 +309,7 @@ async fn upload(
 		},
 
 		None => match get_slim_user_identity(identity) {
-			Some(u) => u.upgrade().await?.unwrap(),
+			Some(u) => u.upgrade().await?,
 			None => {
 				let base_url = config.read()?.website.http_base_host.clone();
 
@@ -412,7 +417,7 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 	handlebars.set_dev_mode(config.debug);
 	handlebars
 		.register_templates_directory(".hbs", "./app/frontend/views")
-		.unwrap();
+		.expect("Unable to register template directory");
 	let handlebars_ref = web::Data::new(handlebars);
 
 	let service = web::Data::new(service);
@@ -427,8 +432,10 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 		let session_key = config_read.session_secret.clone();
 
 		let base_url_with_www =
-			header::HeaderValue::from_str(&format!("www.{}", config_read.website.http_base_host)).unwrap();
-		let base_url_non_www = header::HeaderValue::from_str(&config_read.website.http_base_host).unwrap();
+			header::HeaderValue::from_str(&format!("www.{}", config_read.website.http_base_host))
+			.expect("WWW: Invalid Header Value");
+		let base_url_non_www = header::HeaderValue::from_str(&config_read.website.http_base_host)
+			.expect("Base Host Invalid Header Value");
 		let base_url_non_www_2 = base_url_non_www.clone(); // TODO: Remove.
 
 		let image_url = config_read.website.http_image_host.clone();
@@ -456,7 +463,8 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 			.app_data(config.clone())
 			.app_data(handlebars_ref.clone());
 
-		let app = media::create_services(app, image_url, icon_url, &*config_read);
+		let app = media::create_services(app, image_url, icon_url, &*config_read)
+			.expect("Create Services Error");
 
 		// Redirect off www
 		app.service(

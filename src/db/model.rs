@@ -7,7 +7,7 @@ use mongodb::{
 };
 use rand::prelude::ThreadRng;
 
-use crate::{error::{Result, DateTimeError}, upload::image::UploadImageType, words, Filename};
+use crate::{error::{Result, DateTimeError, InternalError}, upload::image::UploadImageType, words, Filename};
 
 use super::{get_users_collection, AuthCollection, GalleryCollection, ImagesCollection, UsersCollection};
 
@@ -80,8 +80,12 @@ pub struct SlimUser {
 }
 
 impl SlimUser {
-	pub async fn upgrade(&self) -> Result<Option<User>> {
-		find_user_by_id(self.id, &get_users_collection()).await
+	pub async fn upgrade(&self) -> Result<User> {
+		if let Some(user) = find_user_by_id(self.id, &get_users_collection()).await? {
+			 Ok(user)
+		} else {
+			Err(InternalError::UserMissing.into())
+		}
 	}
 }
 
@@ -355,8 +359,8 @@ impl Gallery {
 			"images",
 			self.images
 				.iter()
-				.map(|v| mongodb::bson::to_bson(v).unwrap())
-				.collect::<Vec<_>>(),
+				.map(|v| Result::Ok(mongodb::bson::to_bson(v)?))
+				.collect::<Result<Vec<_>>>()?,
 		);
 		if let Some(value) = self.title {
 			doc.insert("title", value);

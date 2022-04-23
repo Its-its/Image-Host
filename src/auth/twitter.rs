@@ -39,7 +39,7 @@ pub async fn get_twitter_oauth(
 			.finish());
 	}
 
-	let config = config.read().unwrap();
+	let config = config.read()?;
 
 	let (oauth_token, oauth_token_secret, url) = request_token(
 		&config.auth.twitter.consumer_key,
@@ -52,8 +52,7 @@ pub async fn get_twitter_oauth(
 		),
 		None,
 	)
-	.await
-	.unwrap();
+	.await?;
 
 	create_auth_verify(oauth_token, oauth_token_secret, &get_auth_collection()).await?;
 
@@ -79,7 +78,7 @@ pub async fn get_twitter_oauth_callback(
 			.finish());
 	}
 
-	let config = config.read().unwrap();
+	let config = config.read()?;
 
 	let QueryCallback {
 		oauth_token,
@@ -112,7 +111,12 @@ pub async fn get_twitter_oauth_callback(
 			.await?;
 
 		if resp.status_code == 200 {
-			let profile: VerifyCredentials = serde_json::from_value(resp.json.unwrap())?;
+			let profile = match resp.json {
+				Some(v) => serde_json::from_value::<VerifyCredentials>(v)?,
+				None => {
+					return Ok(HttpResponse::InternalServerError().body("Unable to verify credentials. Try again in a few minutes."));
+				}
+			};
 
 			// Create or Update User.
 
@@ -138,7 +142,7 @@ pub async fn get_twitter_oauth_callback(
 				};
 
 				let inserted = get_collection(CollectionType::Users)
-					.insert_one(mongodb::bson::to_document(&new_user).unwrap(), None)
+					.insert_one(mongodb::bson::to_document(&new_user)?, None)
 					.await?;
 
 				new_user.into_user(inserted.inserted_id.as_object_id().unwrap())
