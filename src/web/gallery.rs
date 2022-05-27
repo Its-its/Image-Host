@@ -24,12 +24,12 @@ async fn home(
 	if is_logged_in {
 		let body = hb.render(
 			"gallery/home",
-			&json!({ "title": config.read()?.website.title }),
+			&json!({ "title": config.website.title }),
 		)?;
 
 		Ok(HttpResponse::Ok().body(body))
 	} else {
-		let location = config.read()?.website.http_base_host.clone();
+		let location = config.website.http_base_host.clone();
 
 		Ok(HttpResponse::Unauthorized()
 			.append_header((header::LOCATION, location))
@@ -49,7 +49,7 @@ async fn gallery_new(
 		let gallery_count = model::gallery_count(&user.id, &collection).await?;
 
 		if gallery_count < 100 {
-			let mut lock = words.lock()?;
+			let mut lock = words.lock().await;
 
 			let gallery_name =
 				model::create_empty_gallery(user.id, &mut lock.rng, &collection).await?;
@@ -59,7 +59,7 @@ async fn gallery_new(
 			Err(InternalError::MaxGalleries.into())
 		}
 	} else {
-		let location = config.read()?.website.http_base_host.clone();
+		let location = config.website.http_base_host.clone();
 
 		Ok(HttpResponse::Unauthorized()
 			.append_header((header::LOCATION, location))
@@ -69,7 +69,6 @@ async fn gallery_new(
 
 #[get("/g/{id}")]
 async fn item(hb: HandlebarsDataService<'_>, config: ConfigDataService) -> Result<HttpResponse> {
-	let config = config.read()?;
 
 	Ok(HttpResponse::Ok().body(hb.render(
 		"gallery/item",
@@ -172,7 +171,7 @@ async fn gallery_update(
 
 		Ok(HttpResponse::Ok().finish())
 	} else {
-		let location = config.read()?.website.http_base_host.clone();
+		let location = config.website.http_base_host.clone();
 
 		Ok(HttpResponse::Unauthorized()
 			.append_header((header::LOCATION, location))
@@ -202,7 +201,7 @@ async fn gallery_delete(
 
 		Ok(HttpResponse::Ok().finish())
 	} else {
-		let location = config.read()?.website.http_base_host.clone();
+		let location = config.website.http_base_host.clone();
 
 		Ok(HttpResponse::Unauthorized()
 			.append_header((header::LOCATION, location))

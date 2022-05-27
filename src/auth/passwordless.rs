@@ -56,7 +56,6 @@ pub async fn get_passwordless_oauth(
 			.finish());
 	}
 
-	let config = config.read()?;
 
 	let body = hb.render(
 		"auth/passwordless",
@@ -84,8 +83,7 @@ pub async fn post_passwordless_oauth(
 		return Ok(HttpResponse::MethodNotAllowed().finish()); // TODO: What's the proper status?
 	}
 
-	let config = config.read()?;
-	let oauth_token = gen_sample_alphanumeric(config.auth.passwordless.secret_key_length, &mut rand::thread_rng());
+		let oauth_token = gen_sample_alphanumeric(config.auth.passwordless.secret_key_length, &mut rand::thread_rng());
 
 	let auth_url = format!(
 		"{}://{}{}?oauth_token={}&email={}",

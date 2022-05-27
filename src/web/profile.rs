@@ -24,13 +24,13 @@ async fn profile(
 		let body = hb.render(
 			"profile",
 			&json!({
-				"title": config.read()?.website.title
+				"title": config.website.title
 			}),
 		)?;
 
 		Ok(HttpResponse::Ok().body(body))
 	} else {
-		let location = config.read()?.website.http_base_host.clone();
+		let location = config.website.http_base_host.clone();
 
 		Ok(HttpResponse::TemporaryRedirect()
 			.append_header((header::LOCATION, location))
@@ -92,7 +92,6 @@ async fn get_settings(identity: Identity, _hb: HandlebarsDataService<'_>, config
 		}
 	};
 
-	let config = config.read()?;
 
 	Ok(HttpResponse::Ok().json(Settings {
 		upload_type: Some(user.upload_type.to_num()),

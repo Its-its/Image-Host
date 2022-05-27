@@ -3,13 +3,13 @@
 	clippy::unwrap_used,
 )]
 
-use std::sync::RwLock;
-use std::{convert::TryInto, sync::Mutex};
+use std::convert::TryInto;
 
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
 use actix_web::guard;
 use actix_web::web::Data;
 use futures::TryStreamExt;
+use tokio::sync::Mutex;
 
 use handlebars::Handlebars;
 
@@ -43,7 +43,7 @@ pub mod profile;
 
 // Services
 pub type UploadDataService = web::Data<Service>;
-pub type ConfigDataService = web::Data<RwLock<Config>>;
+pub type ConfigDataService = web::Data<Config>;
 pub type WordDataService = web::Data<Mutex<WordManager>>;
 pub type HandlebarsDataService<'a> = web::Data<Handlebars<'a>>;
 
@@ -65,8 +65,6 @@ async fn index(
 	config: ConfigDataService,
 ) -> Result<HttpResponse> {
 	let is_logged_in = identity.identity().is_some();
-
-	let config = config.read()?;
 
 	let body = hb.render(
 		"home",
@@ -90,7 +88,7 @@ async fn logout(identity: Identity, config: ConfigDataService) -> Result<HttpRes
 	Ok(HttpResponse::Ok()
 		.insert_header((
 			header::LOCATION,
-			config.read()?.website.base_host_with_proto(),
+			config.website.base_host_with_proto(),
 		))
 		.finish())
 }
@@ -272,7 +270,7 @@ async fn upload(
 		Some(v) => v,
 		None => {
 			println!("Missing Image Content-Type");
-			let base_url = config.read()?.website.http_base_host.clone();
+			let base_url = config.website.http_base_host.clone();
 
 			return Ok(HttpResponse::NotAcceptable()
 				.append_header((
@@ -287,7 +285,7 @@ async fn upload(
 		Some(v) => v,
 		None => {
 			println!("Missing Image Data");
-			let base_url = config.read()?.website.http_base_host.clone();
+			let base_url = config.website.http_base_host.clone();
 
 			return Ok(HttpResponse::NotAcceptable()
 				.append_header((header::LOCATION, base_url + "error?type=Missing+Image+Data"))
@@ -300,7 +298,7 @@ async fn upload(
 			Some(v) => v,
 			None => {
 				println!("Unable to Find User By Unique ID");
-				let base_url = config.read()?.website.http_base_host.clone();
+				let base_url = config.website.http_base_host.clone();
 
 				return Ok(HttpResponse::NotAcceptable()
 					.append_header((
@@ -315,7 +313,7 @@ async fn upload(
 			Some(u) => u.upgrade().await?,
 			None => {
 				println!("Missing Unique ID");
-				let base_url = config.read()?.website.http_base_host.clone();
+				let base_url = config.website.http_base_host.clone();
 
 				return Ok(HttpResponse::NotAcceptable()
 					.append_header((header::LOCATION, base_url + "error?type=Missing+Unique+ID"))
@@ -343,7 +341,7 @@ async fn upload(
 	} else {
 		let path = format!(
 			"{}/{}",
-			config.read()?.website.image_host_with_proto(),
+			config.website.image_host_with_proto(),
 			slim_image.full_file_name()
 		);
 
@@ -425,25 +423,24 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 	let handlebars_ref = web::Data::new(handlebars);
 
 	let service = web::Data::new(service);
-	let config = web::Data::new(RwLock::new(config));
+	let config = web::Data::new(config);
 
 	println!("Starting website.");
 
 	HttpServer::new(move || {
 		let config = config.clone();
-		let config_read = config.read().unwrap();
 
-		let session_key = config_read.session_secret.clone();
+		let session_key = config.session_secret.clone();
 
 		let base_url_with_www =
-			header::HeaderValue::from_str(&format!("www.{}", config_read.website.http_base_host))
+			header::HeaderValue::from_str(&format!("www.{}", config.website.http_base_host))
 			.expect("WWW: Invalid Header Value");
-		let base_url_non_www = header::HeaderValue::from_str(&config_read.website.http_base_host)
+		let base_url_non_www = header::HeaderValue::from_str(&config.website.http_base_host)
 			.expect("Base Host Invalid Header Value");
 		let base_url_non_www_2 = base_url_non_www.clone(); // TODO: Remove.
 
-		let image_url = config_read.website.http_image_host.clone();
-		let icon_url = config_read.website.http_icon_host.clone();
+		let image_url = config.website.http_image_host.clone();
+		let icon_url = config.website.http_icon_host.clone();
 
 		let app = App::new()
 			// enable logger
@@ -467,7 +464,7 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 			.app_data(config.clone())
 			.app_data(handlebars_ref.clone());
 
-		let app = media::create_services(app, image_url, icon_url, &*config_read)
+		let app = media::create_services(app, image_url, icon_url, &*config)
 			.expect("Create Services Error");
 
 		// Redirect off www
@@ -513,9 +510,9 @@ pub async fn init(config: Config, service: Service) -> Result<()> {
 				.service(update_image)
 				.service(remove_image);
 
-			let scope = crate::feature::gallery::register(scope, &*config_read);
-			let scope = crate::auth::twitter::register(scope, &*config_read);
-			let scope = crate::auth::passwordless::register(scope, &*config_read);
+			let scope = crate::feature::gallery::register(scope, &*config);
+			let scope = crate::auth::twitter::register(scope, &*config);
+			let scope = crate::auth::passwordless::register(scope, &*config);
 
 			scope.service(actix_files::Files::new("/", "./app/frontend/public/www"))
 		})

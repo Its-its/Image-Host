@@ -37,20 +37,18 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 				"/{name}",
 				web::to(|mut name: web::Path<String>, config: ConfigDataService| async move {
 					let url = {
-						let read = config.read()?;
-
 						let input = if name.starts_with('i') {
 							// We don't prepend 'i' if the icon dir is different than the image one.
-							if read.services.b2.icon_sub_directory != read.services.b2.image_sub_directory {
+							if config.services.b2.icon_sub_directory != config.services.b2.image_sub_directory {
 								name.remove(0);
 							}
 
-							&read.services.b2.icon_sub_directory
+							&config.services.b2.icon_sub_directory
 						} else {
-							&read.services.b2.image_sub_directory
+							&config.services.b2.image_sub_directory
 						};
 
-						Url::from_str(&read.services.b2.public_url)?
+						Url::from_str(&config.services.b2.public_url)?
 							.join(&format!("{}/{}", input, &name))?
 					};
 
@@ -68,15 +66,13 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 						if name.is_empty() {
 							Result::Ok(HttpResponse::NotFound().finish())
 						} else {
-							let read = config.read()?;
-
 							let mut path = PathBuf::new();
-							path.push(&read.services.filesystem.upload_directory);
+							path.push(&config.services.filesystem.upload_directory);
 
 							if name.starts_with('i') {
-								path.push(&read.services.filesystem.icon_sub_directory);
+								path.push(&config.services.filesystem.icon_sub_directory);
 							} else {
-								path.push(&read.services.filesystem.image_sub_directory);
+								path.push(&config.services.filesystem.image_sub_directory);
 							}
 
 							path.push(name.into_inner());
@@ -95,12 +91,10 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 	} else {
 		async fn b2_image_route(name: web::Path<String>, config: ConfigDataService) -> Result<HttpResponse> {
 			let url = {
-				let read = config.read()?;
-
-				Url::from_str(&read.services.b2.public_url)?
+				Url::from_str(&config.services.b2.public_url)?
 					.join(&format!(
 						"{}/{}",
-						&read.services.b2.image_sub_directory, &name
+						&config.services.b2.image_sub_directory, &name
 					))?
 			};
 
@@ -112,12 +106,10 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 
 		async fn b2_icon_route(name: web::Path<String>, config: ConfigDataService) -> Result<HttpResponse> {
 			let url = {
-				let read = config.read()?;
-
-				Url::from_str(&read.services.b2.public_url)?
+				Url::from_str(&config.services.b2.public_url)?
 					.join(&format!(
 						"{}/{}",
-						&read.services.b2.icon_sub_directory, &name
+						&config.services.b2.icon_sub_directory, &name
 					))?
 			};
 
@@ -131,11 +123,9 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 			if name.is_empty() {
 				Ok(HttpResponse::NotFound().finish())
 			} else {
-				let read = config.read()?;
-
 				let mut path = PathBuf::new();
-				path.push(&read.services.filesystem.upload_directory);
-				path.push(&read.services.filesystem.image_sub_directory);
+				path.push(&config.services.filesystem.upload_directory);
+				path.push(&config.services.filesystem.image_sub_directory);
 				path.push(name.into_inner());
 
 				match NamedFile::open_async(path).await {
@@ -149,11 +139,9 @@ pub fn create_services<T: ServiceFactory<ServiceRequest, Config = (), Error = ac
 			if name.is_empty() {
 				Ok(HttpResponse::NotFound().finish())
 			} else {
-				let read = config.read()?;
-
 				let mut path = PathBuf::new();
-				path.push(&read.services.filesystem.upload_directory);
-				path.push(&read.services.filesystem.icon_sub_directory);
+				path.push(&config.services.filesystem.upload_directory);
+				path.push(&config.services.filesystem.icon_sub_directory);
 				path.push(name.into_inner());
 
 				match NamedFile::open_async(path).await {

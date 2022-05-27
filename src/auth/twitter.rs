@@ -40,8 +40,6 @@ pub async fn get_twitter_oauth(
 			.finish());
 	}
 
-	let config = config.read()?;
-
 	let (oauth_token, oauth_token_secret, url) = request_token(
 		&config.auth.twitter.consumer_key,
 		&config.auth.twitter.consumer_secret,
@@ -78,8 +76,6 @@ pub async fn get_twitter_oauth_callback(
 			.append_header((header::LOCATION, "/"))
 			.finish());
 	}
-
-	let config = config.read()?;
 
 	let QueryCallback {
 		oauth_token,

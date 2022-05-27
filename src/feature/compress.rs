@@ -8,7 +8,6 @@ use crate::{Filename, Result, web::ConfigDataService, error::{InternalError, Err
 
 pub fn compress_if_enabled(file_name: &Filename, image_data: Vec<u8>, image: DynamicImage, config: &ConfigDataService) -> Result<Vec<u8>> {
 	{
-		let config = config.read()?;
 		if !config.features.compression.enabled {
 			return Ok(image_data);
 		}
@@ -54,10 +53,8 @@ pub fn compress_if_enabled(file_name: &Filename, image_data: Vec<u8>, image: Dyn
 			comp.set_mem_dest();
 			comp.set_size(width, height);
 
-			{
-				let read = config.read()?;
-				comp.set_quality(read.features.compression.quality);
-			}
+			comp.set_quality(config.features.compression.quality);
+
 			// comp.set_scan_optimization_mode(mozjpeg::ScanMode::Auto);
 
 			comp.start_compress();

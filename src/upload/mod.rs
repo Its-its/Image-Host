@@ -16,7 +16,7 @@ pub struct UploadProcessData {
 
 impl UploadProcessData {
 	pub async fn get_file_name(&self, image_icon_same_dir: bool, words: &WordDataService, collection: &ImagesCollection) -> Result<Filename> {
-		let mut words = words.lock()?;
+		let mut words = words.lock().await;
 
 		if let Some(upload_type) = self.file_type {
 			upload_type.get_link_name(&mut *words, image_icon_same_dir, collection).await?
