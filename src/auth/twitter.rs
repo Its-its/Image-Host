@@ -166,7 +166,7 @@ pub struct VerifyCredentials {
 	pub location: Option<String>,
 	pub description: Option<String>,
 
-	pub url: String,
+	pub url: Option<String>,
 
 	pub protected: bool,
 	pub followers_count: i64,
